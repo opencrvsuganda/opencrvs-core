@@ -18,6 +18,7 @@ import {
   Event
 } from '@client/forms'
 import { messages } from '@client/i18n/messages/views/correction'
+import { fieldValueSectionExchangeTransformer } from '@client/forms/mappings/mutation'
 
 const birthCorrectorRelationGroup: IFormSectionGroup = {
   id: 'correctorRelation',
@@ -82,6 +83,12 @@ const birthCorrectorRelationGroup: IFormSectionGroup = {
             mapping: {}
           }
         ]
+      },
+      mapping: {
+        mutation: fieldValueSectionExchangeTransformer(
+          'correction',
+          'requester'
+        )
       }
     }
   ]
@@ -141,6 +148,12 @@ const deathCorrectorRelationGroup: IFormSectionGroup = {
             mapping: {}
           }
         ]
+      },
+      mapping: {
+        mutation: fieldValueSectionExchangeTransformer(
+          'correction',
+          'requester'
+        )
       }
     }
   ]

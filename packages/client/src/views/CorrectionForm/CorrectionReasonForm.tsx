@@ -14,7 +14,7 @@ import { modifyApplication, IApplication } from '@client/applications'
 import { connect } from 'react-redux'
 import { WrappedComponentProps as IntlShapeProps, injectIntl } from 'react-intl'
 import { goBack, goToHomeTab } from '@client/navigation'
-import { IFormSection, IFormSectionData } from '@client/forms'
+import { IFormSection, IFormSectionData, Event, IForm } from '@client/forms'
 import { replaceInitialValues } from '@client/views/RegisterForm/RegisterForm'
 import { ActionPageLight } from '@opencrvs/components/lib/interface'
 import { FormFieldGenerator } from '@client/components/form'
@@ -26,7 +26,14 @@ import {
   ContentSize
 } from '@opencrvs/components/lib/interface/Content'
 import { groupHasError } from './utils'
+import { draftToGqlTransformer } from '@client/transformer'
+import { getCorrectorSection } from '@client/forms/correction/corrector'
+import { IStoreState } from '@client/store'
 
+type IConnectProps = {
+  form: IForm
+  primaryOffice?: string
+}
 type IProps = {
   application: IApplication
 }
@@ -37,7 +44,7 @@ type IDispatchProps = {
   modifyApplication: typeof modifyApplication
 }
 
-type IFullProps = IProps & IDispatchProps & IntlShapeProps
+type IFullProps = IProps & IDispatchProps & IntlShapeProps & IConnectProps
 
 function getGroupWithInitialValues(
   section: IFormSection,
@@ -85,7 +92,12 @@ function CorrectionReasonFormComponent(props: IFullProps) {
   /*
    * TODO: goto next form
    */
-  const continueButtonHandler = () => {}
+  const continueButtonHandler = () => {
+    console.log(application)
+    console.log(
+      draftToGqlTransformer(props.form, props.application, props.application.id)
+    )
+  }
 
   const cancelCorrection = () => {
     props.modifyApplication({
@@ -137,8 +149,16 @@ function CorrectionReasonFormComponent(props: IFullProps) {
   )
 }
 
-export const CorrectionReasonForm = connect(undefined, {
-  goBack,
-  goToHomeTab,
-  modifyApplication
-})(injectIntl(CorrectionReasonFormComponent))
+export const CorrectionReasonForm = connect(
+  (state: IStoreState) => {
+    return {
+      userPrimaryOffice: state.profile.userDetails?.primaryOffice,
+      form: state.registerForm.registerForm?.birth as IForm
+    }
+  },
+  {
+    goBack,
+    goToHomeTab,
+    modifyApplication
+  }
+)(injectIntl(CorrectionReasonFormComponent))

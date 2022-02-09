@@ -10,11 +10,15 @@
  * graphic logo are (registered/a) trademark(s) of Plan International.
  */
 import * as React from 'react'
-import { modifyApplication, IApplication } from '@client/applications'
+import {
+  modifyApplication,
+  IApplication,
+  SUBMISSION_STATUS
+} from '@client/applications'
 import { connect } from 'react-redux'
 import { WrappedComponentProps as IntlShapeProps, injectIntl } from 'react-intl'
 import { goBack, goToHomeTab } from '@client/navigation'
-import { IFormSection, IFormSectionData, Event, IForm } from '@client/forms'
+import { IFormSection, IFormSectionData, IForm, Action } from '@client/forms'
 import { replaceInitialValues } from '@client/views/RegisterForm/RegisterForm'
 import { ActionPageLight } from '@opencrvs/components/lib/interface'
 import { FormFieldGenerator } from '@client/components/form'
@@ -25,14 +29,17 @@ import {
   Content,
   ContentSize
 } from '@opencrvs/components/lib/interface/Content'
-import { groupHasError } from './utils'
+import {
+  groupHasError,
+  updateApplicationRegistrationWithCorrection
+} from './utils'
 import { draftToGqlTransformer } from '@client/transformer'
 import { getCorrectorSection } from '@client/forms/correction/corrector'
 import { IStoreState } from '@client/store'
 
 type IConnectProps = {
   form: IForm
-  primaryOffice?: string
+  userPrimaryOffice?: string
 }
 type IProps = {
   application: IApplication
@@ -93,10 +100,14 @@ function CorrectionReasonFormComponent(props: IFullProps) {
    * TODO: goto next form
    */
   const continueButtonHandler = () => {
-    console.log(application)
-    console.log(
-      draftToGqlTransformer(props.form, props.application, props.application.id)
-    )
+    const application = props.application
+    application.action = Action.REQUEST_CORRECTION_APPLICATION
+    application.submissionStatus = SUBMISSION_STATUS.READY_TO_REQUEST_CORRECTION
+    updateApplicationRegistrationWithCorrection(props.application, {
+      userPrimaryOffice: props.userPrimaryOffice
+    })
+
+    props.goToHomeTab('review')
   }
 
   const cancelCorrection = () => {
@@ -152,7 +163,7 @@ function CorrectionReasonFormComponent(props: IFullProps) {
 export const CorrectionReasonForm = connect(
   (state: IStoreState) => {
     return {
-      userPrimaryOffice: state.profile.userDetails?.primaryOffice,
+      userPrimaryOffice: state.profile.userDetails?.primaryOffice?.id,
       form: state.registerForm.registerForm?.birth as IForm
     }
   },

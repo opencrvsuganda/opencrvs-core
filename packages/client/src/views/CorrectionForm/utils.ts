@@ -9,7 +9,11 @@
  * Copyright (C) The OpenCRVS Authors. OpenCRVS and the OpenCRVS
  * graphic logo are (registered/a) trademark(s) of Plan International.
  */
-import { IFormSectionGroup, IFormSectionData } from '@client/forms'
+import {
+  IFormSectionGroup,
+  IFormSectionData,
+  IAttachmentValue
+} from '@client/forms'
 import { IApplication, SUBMISSION_STATUS } from '@client/applications'
 import { getValidationErrorsForForm } from '@client/forms/validation'
 
@@ -46,4 +50,67 @@ export function groupHasError(
 
 export function isCorrection(application: IApplication) {
   return application.registrationStatus === SUBMISSION_STATUS.REGISTERED
+}
+
+export function updateApplicationRegistrationWithCorrection(
+  application: IApplication,
+  meta?: { userPrimaryOffice?: string }
+): void {
+  const correctionValues: Record<string, any> = {}
+  const { data } = application
+
+  if (data.corrector && data.corrector.relationship) {
+    let requester = ''
+    requester = ((data.corrector.relationship as IFormSectionData).value ||
+      data.corrector.relationship) as string
+    correctionValues.requester = requester
+  }
+
+  if (data.reason) {
+    let reason = ''
+    if (data.reason.type) {
+      reason = ((data.reason.type as IFormSectionData).value ||
+        data.reason.type) as string
+    }
+
+    correctionValues.reason = reason
+
+    if (data.reason.additionalComment) {
+      correctionValues.note = data.reason.additionalComment
+    }
+  }
+
+  if (data.supportingDocuments) {
+    if (
+      typeof data.supportingDocuments.supportDocumentRequiredForCorrection ===
+      'boolean'
+    ) {
+      if (data.supportingDocuments.supportDocumentRequiredForCorrection) {
+        correctionValues.hasShowedVerifiedDocument = true
+      } else {
+        correctionValues.noSupportingDocumentationRequired = true
+      }
+    }
+
+    if (data.supportingDocuments.uploadDocForLegalProof) {
+      correctionValues.data = (
+        data.supportingDocuments.uploadDocForLegalProof as IAttachmentValue
+      ).data
+    }
+  }
+
+  if (meta) {
+    if (meta.userPrimaryOffice) {
+      correctionValues.location = {
+        _fhirID: meta.userPrimaryOffice
+      }
+    }
+  }
+
+  data.registration.correction = data.registration.correction
+    ? {
+        ...(data.registration.correction as IFormSectionData),
+        ...correctionValues
+      }
+    : correctionValues
 }

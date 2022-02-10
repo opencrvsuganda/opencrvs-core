@@ -13,7 +13,8 @@ import * as React from 'react'
 import {
   modifyApplication,
   IApplication,
-  SUBMISSION_STATUS
+  SUBMISSION_STATUS,
+  writeApplication
 } from '@client/applications'
 import { connect } from 'react-redux'
 import { WrappedComponentProps as IntlShapeProps, injectIntl } from 'react-intl'
@@ -33,8 +34,6 @@ import {
   groupHasError,
   updateApplicationRegistrationWithCorrection
 } from './utils'
-import { draftToGqlTransformer } from '@client/transformer'
-import { getCorrectorSection } from '@client/forms/correction/corrector'
 import { IStoreState } from '@client/store'
 
 type IConnectProps = {
@@ -49,6 +48,7 @@ type IDispatchProps = {
   goBack: typeof goBack
   goToHomeTab: typeof goToHomeTab
   modifyApplication: typeof modifyApplication
+  writeApplication: typeof writeApplication
 }
 
 type IFullProps = IProps & IDispatchProps & IntlShapeProps & IConnectProps
@@ -106,7 +106,7 @@ function CorrectionReasonFormComponent(props: IFullProps) {
     updateApplicationRegistrationWithCorrection(props.application, {
       userPrimaryOffice: props.userPrimaryOffice
     })
-
+    props.writeApplication(application)
     props.goToHomeTab('review')
   }
 
@@ -170,6 +170,7 @@ export const CorrectionReasonForm = connect(
   {
     goBack,
     goToHomeTab,
-    modifyApplication
+    modifyApplication,
+    writeApplication
   }
 )(injectIntl(CorrectionReasonFormComponent))

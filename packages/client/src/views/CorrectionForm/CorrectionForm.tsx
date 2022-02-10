@@ -20,6 +20,7 @@ import {
 } from '@client/views/CorrectionForm'
 import { CorrectionSection } from '@client/forms'
 import { CorrectionReasonForm } from './CorrectionReasonForm'
+import { CorrectionSummary } from './CorrectionSummary'
 
 type IProps = IStateProps & IDispatchProps
 
@@ -31,6 +32,8 @@ function CorrectionFormComponent({ sectionId, ...props }: IProps) {
       return <CorrectionReasonForm {...props} />
     case CorrectionSection.SupportingDocuments:
       return <SupportingDocumentsForm {...props} />
+    case CorrectionSection.Summary:
+      return <CorrectionSummary {...props} />
   }
   return <></>
 }

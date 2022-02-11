@@ -57,6 +57,7 @@ import {
 } from '@client/forms/utils'
 import { buttonMessages } from '@client/i18n/messages'
 import { flattenDeep, get, clone, isEqual } from 'lodash'
+import { GQLLocation } from '@opencrvs/gateway/src/graphql/schema'
 
 export function groupHasError(
   group: IFormSectionGroup,
@@ -95,7 +96,7 @@ export function isCorrection(application: IApplication) {
 
 export function updateApplicationRegistrationWithCorrection(
   application: IApplication,
-  meta?: { userPrimaryOffice?: string }
+  meta?: { userPrimaryOffice?: GQLLocation }
 ): void {
   const correctionValues: Record<string, any> = {}
   const { data } = application
@@ -139,7 +140,7 @@ export function updateApplicationRegistrationWithCorrection(
   if (meta) {
     if (meta.userPrimaryOffice) {
       correctionValues.location = {
-        _fhirID: meta.userPrimaryOffice
+        _fhirID: meta.userPrimaryOffice._fhirID
       }
     }
   }

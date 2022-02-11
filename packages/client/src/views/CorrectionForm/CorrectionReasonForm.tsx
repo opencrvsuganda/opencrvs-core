@@ -38,16 +38,8 @@ import {
   Content,
   ContentSize
 } from '@opencrvs/components/lib/interface/Content'
-import {
-  groupHasError,
-  updateApplicationRegistrationWithCorrection
-} from './utils'
-import { IStoreState } from '@client/store'
+import { groupHasError } from './utils'
 
-type IConnectProps = {
-  form: IForm
-  userPrimaryOffice?: string
-}
 type IProps = {
   application: IApplication
 }
@@ -57,10 +49,9 @@ type IDispatchProps = {
   goToHomeTab: typeof goToHomeTab
   goToCertificateCorrection: typeof goToCertificateCorrection
   modifyApplication: typeof modifyApplication
-  writeApplication: typeof writeApplication
 }
 
-type IFullProps = IProps & IDispatchProps & IntlShapeProps & IConnectProps
+type IFullProps = IProps & IDispatchProps & IntlShapeProps
 
 function getGroupWithInitialValues(
   section: IFormSection,

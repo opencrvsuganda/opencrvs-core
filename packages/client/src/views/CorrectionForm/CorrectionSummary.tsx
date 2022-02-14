@@ -83,17 +83,16 @@ import { getOfflineData } from '@client/offline/selectors'
 import { IOfflineData } from '@client/offline/reducer'
 import { getUserDetails } from '@client/profile/profileSelectors'
 import { IGQLLocation } from '@client/utils/userUtils'
+import { CorrectorRelationship } from '@client/forms/correction/corrector'
+import { CorrectionReason } from '@client/forms/correction/reason'
 
 const SupportingDocument = styled.div`
   display: flex;
   margin: 8px 0;
+  & span:last-child {
+    padding-left: 8px;
+  }
 `
-interface Correction {
-  item: string
-  original: string
-  correction: string
-}
-
 interface IProps {
   userPrimaryOffice?: IGQLLocation
   registerForm: { [key: string]: IForm }
@@ -139,7 +138,6 @@ class CorrectionSummaryComponent extends React.Component<IFullProps> {
       application: { event }
     } = this.props
     const formSections = getViewableSection(registerForm[event], application)
-    console.log(application)
     const backToReviewButton = (
       <SecondaryButton
         id="back_to_review"
@@ -170,7 +168,7 @@ class CorrectionSummaryComponent extends React.Component<IFullProps> {
           title={intl.formatMessage(messages.title)}
           hideBackground
           goBack={goBack}
-          goHome={this.cancelCorrection}
+          goHome={() => this.props.goToHomeTab('review')}
         >
           <Content
             title={intl.formatMessage(messages.correctionSummaryTitle)}
@@ -515,7 +513,7 @@ class CorrectionSummaryComponent extends React.Component<IFullProps> {
               offlineResources,
               language,
               undefined,
-              !index
+              !!index
             )
           )
           .filter((value) => value)
@@ -742,23 +740,23 @@ class CorrectionSummaryComponent extends React.Component<IFullProps> {
       corrector &&
       ((corrector.relationship as IFormSectionData).value as string)
     switch (relationship) {
-      case 'MOTHER':
-        return this.getName(this.props.application.data.mother)
-      case 'FATHER':
-        return this.getName(this.props.application.data.father)
-      case 'CHILD':
-        return this.getName(this.props.application.data.child)
-      case 'INFORMANT':
+      case CorrectorRelationship.INFORMANT:
         return this.getName(this.props.application.data.informant)
-      case 'LEGAL_GUARDIAN':
+      case CorrectorRelationship.MOTHER:
+        return this.getName(this.props.application.data.mother)
+      case CorrectorRelationship.FATHER:
+        return this.getName(this.props.application.data.father)
+      case CorrectorRelationship.CHILD:
+        return this.getName(this.props.application.data.child)
+      case CorrectorRelationship.LEGAL_GUARDIAN:
         return this.props.intl.formatMessage(messages.legalGuardian)
-      case 'ANOTHER_AGENT':
+      case CorrectorRelationship.ANOTHER_AGENT:
         return this.props.intl.formatMessage(messages.anotherRegOrFieldAgent)
-      case 'REGISTRAR':
+      case CorrectorRelationship.REGISTRAR:
         return this.props.intl.formatMessage(messages.me)
-      case 'COURT':
+      case CorrectorRelationship.COURT:
         return this.props.intl.formatMessage(messages.court)
-      case 'OTHER':
+      case CorrectorRelationship.OTHER:
         return (
           (corrector.relationship as IFormSectionData)
             .nestedFields as IFormSectionData
@@ -784,23 +782,23 @@ class CorrectionSummaryComponent extends React.Component<IFullProps> {
     const reasonType = reason && (reason.type as IFormSectionData)
     const reasonValue = reasonType && (reasonType.value as string)
     switch (reasonValue) {
-      case 'CLERICAL_ERROR':
+      case CorrectionReason.CLERICAL_ERROR:
         return this.getReason(
           this.props.intl.formatMessage(messages.clericalError)
         )
-      case 'MATERIAL_ERROR':
+      case CorrectionReason.MATERIAL_ERROR:
         return this.getReason(
           this.props.intl.formatMessage(messages.materialError)
         )
-      case 'MATERIAL_OMISSION':
+      case CorrectionReason.MATERIAL_OMISSION:
         return this.getReason(
           this.props.intl.formatMessage(messages.materialOmission)
         )
-      case 'JUDICIAL_ORDER':
+      case CorrectionReason.JUDICIAL_ORDER:
         return this.getReason(
           this.props.intl.formatMessage(messages.judicialOrder)
         )
-      case 'OTHER':
+      case CorrectionReason.OTHER:
         return this.getReason(
           (reasonType.nestedFields as IFormSectionData)
             .reasonForChange as string
@@ -870,7 +868,7 @@ class CorrectionSummaryComponent extends React.Component<IFullProps> {
             return (
               <SupportingDocument>
                 <PaperClip />
-                {doc[1]}
+                <span>{doc[1]}</span>
               </SupportingDocument>
             )
           })}
@@ -896,16 +894,6 @@ class CorrectionSummaryComponent extends React.Component<IFullProps> {
     updateApplicationRegistrationWithCorrection(application, {
       userPrimaryOffice: this.props.userPrimaryOffice
     })
-  }
-
-  cancelCorrection = () => {
-    this.props.modifyApplication({
-      ...this.props.application,
-      data: {
-        ...this.props.application.originalData
-      }
-    })
-    this.props.goToHomeTab('review')
   }
 
   gotoReviewPage = () => {

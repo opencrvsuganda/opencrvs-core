@@ -21,6 +21,14 @@ import { formMessages } from '@client/i18n/messages/form'
 import { messages } from '@client/i18n/messages/views/correction'
 import { fieldValueSectionExchangeTransformer } from '@client/forms/mappings/mutation'
 
+export enum CorrectionReason {
+  CLERICAL_ERROR = 'CLERICAL_ERROR',
+  MATERIAL_ERROR = 'MATERIAL_ERROR',
+  MATERIAL_OMISSION = 'MATERIAL_OMISSION',
+  JUDICIAL_ORDER = 'JUDICIAL_ORDER',
+  OTHER = 'OTHER'
+}
+
 export const correctRecordReasonSectionGroup: IFormSectionGroup = {
   id: 'recordCorrection',
   title: messages.whatWasTheReasonForCorrection,
@@ -36,15 +44,24 @@ export const correctRecordReasonSectionGroup: IFormSectionGroup = {
       initialValue: '',
       validate: [],
       options: [
-        { value: 'CLERICAL_ERROR', label: messages.clericalError },
-        { value: 'MATERIAL_ERROR', label: messages.materialError },
-        { value: 'MATERIAL_OMISSION', label: messages.materialOmission },
         {
-          value: 'JUDICIAL_ORDER',
+          value: CorrectionReason.CLERICAL_ERROR,
+          label: messages.clericalError
+        },
+        {
+          value: CorrectionReason.MATERIAL_ERROR,
+          label: messages.materialError
+        },
+        {
+          value: CorrectionReason.MATERIAL_OMISSION,
+          label: messages.materialOmission
+        },
+        {
+          value: CorrectionReason.JUDICIAL_ORDER,
           label: messages.judicialOrder
         },
         {
-          value: 'OTHER',
+          value: CorrectionReason.OTHER,
           label: formMessages.otherOption
         }
       ],

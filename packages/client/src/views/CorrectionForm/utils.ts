@@ -408,8 +408,9 @@ export function hasNestedDataChanged(
       if (
         nestedFieldData.nestedFields[key] !==
         previousNestedFieldData.nestedFields[key]
-      )
+      ) {
         return true
+      }
     }
     return false
   }

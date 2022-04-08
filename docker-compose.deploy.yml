@@ -75,6 +75,7 @@ services:
       - overlay_net
 
   kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
     restart: always
     deploy:
       labels:

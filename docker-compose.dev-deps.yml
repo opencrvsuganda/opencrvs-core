@@ -12,16 +12,19 @@ version: '3.3'
 services:
   # For dependencies, expose ports locally for dev
   mongo1:
+    command: mongod --quiet
     ports:
       - '27017:27017'
     volumes:
       - './data/mongo:/data/db'
 
   redis:
+    command: --loglevel warning
     ports:
       - '6379:6379'
 
   elasticsearch:
+    command: elasticsearch --silent
     ports:
       - '9200:9200'
       - '9300:9300'
@@ -32,12 +35,15 @@ services:
       - 'cluster.routing.allocation.disk.threshold_enabled=false'
       - 'ES_JAVA_OPTS=-Xms1024m -Xmx1024m'
       - bootstrap.system_call_filter=false
+      - logger.level=ERROR
 
   influxdb:
     ports:
       - '8086:8086'
     volumes:
       - './data/influxdb:/var/lib/influxdb'
+    environment:
+      - INFLUXDB_HTTP_LOG_ENABLED=false
 
   # Expose dev secrets as a plain volume - these will use docker secrets in staging and prod
   hearth:

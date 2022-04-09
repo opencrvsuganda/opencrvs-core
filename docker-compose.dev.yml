@@ -10,99 +10,182 @@
 version: '3.3'
 
 services:
-  # Expose dev secrets as a plain volume - these will use docker secrets in staging and prod
   auth:
+    image: node:lts-alpine3.15
+    command:
+      - /bin/sh
+      - -c
+      - |
+        ./infrastructure/development/ensure-secrets.sh && \
+        cd /usr/app/packages/auth && \
+        yarn start
+    working_dir: /usr/app
+    networks:
+      - dependencies
     volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
-      - '.secrets/private-key.pem:/secrets/private-key.pem'
+      - '.:/usr/app'
     environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
-      - CERT_PRIVATE_KEY_PATH=/secrets/private-key.pem
+      - LOG_LEVEL=error
+      - REDIS_HOST=redis
+      - USER_MANAGEMENT_URL=http://user-mgnt:3030/
     ports:
       - '4040:4040'
-
   user-mgnt:
+    image: node:lts-alpine3.15
+    entrypoint: yarn start
+    working_dir: /usr/app/packages/user-mgnt
     volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
-    environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
-      - HOST=0.0.0.0
+      - '.:/usr/app'
+    networks:
+      - dependencies
     ports:
       - '3030:3030'
-
-  webhooks:
-    volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
     environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
       - HOST=0.0.0.0
-    ports:
-      - '2525:2525'
-
-  notification:
-    volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
-    environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
-    ports:
-      - '2020:2020'
-
-  gateway:
-    volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
-    environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
-    ports:
-      - '7070:7070'
-
-  workflow:
-    volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
-    environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
-    ports:
-      - '5050:5050'
-
-  search:
-    volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
-    environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
-    ports:
-      - '9090:9090'
-
-  countryconfig:
-    image: opencrvs/ocrvs-farajaland:latest
-    volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
-    environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
+      - LOG_LEVEL=error
       - MONGO_URL=mongodb://mongo1/user-mgnt
-      - NODE_ENV=development
-      - FHIR_URL=http://hearth:3447/fhir
-      - AUTH_URL=http://auth:4040
-      - OPENHIM_URL=http://openhim-core:5001
-      - CONFIRM_REGISTRATION_URL=http://workflow:5050/confirm/registration
-      - CHECK_INVALID_TOKEN=true
-    ports:
-      - '3040:3040'
-
-  metrics:
-    volumes:
-      - '.secrets/public-key.pem:/secrets/public-key.pem'
-    environment:
-      - CERT_PUBLIC_KEY_PATH=/secrets/public-key.pem
-    ports:
-      - '1050:1050'
-
-  client:
-    ports:
-      - '3000:80'
-
-  login:
-    ports:
-      - '3020:80'
-
   config:
+    image: node:lts-alpine3.15
+    entrypoint: yarn start
+    working_dir: /usr/app/packages/config
+    volumes:
+      - '.:/usr/app'
+    networks:
+      - dependencies
     ports:
       - '2021:2021'
+    environment:
+      - LOG_LEVEL=error
+      - HOST=0.0.0.0
+      - MONGO_URL=mongodb://mongo1/application-config
+  search:
+    image: node:lts-alpine3.15
+    entrypoint: yarn start
+    working_dir: /usr/app/packages/search
+    volumes:
+      - '.:/usr/app'
+    networks:
+      - dependencies
+    ports:
+      - '9090:9090'
+    environment:
+      - LOG_LEVEL=error
+      - ES_HOST=elasticsearch:9200
+      - AUTH_URL=auth:4040
+      - HEARTH_URL=hearth:3447
+  metrics:
+    image: node:lts-alpine3.15
+    entrypoint: yarn start
+    working_dir: /usr/app/packages/metrics
+    volumes:
+      - '.:/usr/app'
+    networks:
+      - dependencies
+    ports:
+      - '1050:1050'
+    environment:
+      - LOG_LEVEL=error
+      - INFLUX_HOST=influxdb
+      - COUNTRY_CONFIG_URL=http://countryconfig:3040
+      - CONFIG_API_URL=http://config:2021
+      - FHIR_URL=http://openhim-core:5001/fhir
+      - SEARCH_URL=http://search:9090/
+  gateway:
+    image: node:lts-alpine3.15
+    entrypoint: yarn start
+    working_dir: /usr/app/packages/gateway
+    networks:
+      - dependencies
+    volumes:
+      - '.:/usr/app'
+    environment:
+      - LOG_LEVEL=error
+      - REDIS_HOST=redis
+      - FHIR_URL=http://openhim-core:5001/fhir
+      - SEARCH_URL=http://search:9090/
+      - METRICS_URL=http://metrics:1050
+      - AUTH_URL=http://auth:4040
+      - USER_MANAGEMENT_URL=http://user-mgnt:3030/
+      - APPLICATION_CONFIG_URL=http://config:2021/
+      - NOTIFICATION_URL=http://notification:2020/
+      - WORKFLOW_URL=http://workflow:5050/
+      - COUNTRY_CONFIG_URL=http://countryconfig:3040
+    ports:
+      - '7070:7070'
+  workflow:
+    image: node:lts-alpine3.15
+    entrypoint: yarn start
+    working_dir: /usr/app/packages/workflow
+    networks:
+      - dependencies
+    volumes:
+      - '.:/usr/app'
+    environment:
+      - LOG_LEVEL=error
+      - HEARTH_URL=http://hearth:3447/fhir
+      - OPENHIM_URL=http://openhim-core:5001
+      - USER_MANAGEMENT_URL=http://user-mgnt:3030/
+      - AUTH_URL=http://auth:4040
+      - NOTIFICATION_SERVICE_URL=http://notification:2020/
+      - RESOURCE_SERVICE_URL=http://countryconfig:3040/
+    ports:
+      - '5050:5050'
+  client:
+    image: node:lts-alpine3.15
+    command:
+      - /bin/sh
+      - -c
+      - |
+        ./infrastructure/development/ensure-components.sh && \
+        cd /usr/app/packages/client && \
+        yarn start
+    working_dir: /usr/app
+    volumes:
+      - '.:/usr/app'
+    ports:
+      - '3000:3000'
+
+  countryconfig:
+    image: node:lts-alpine3.15
+    command:
+      - /bin/sh
+      - -c
+      - |
+        ../core/infrastructure/development/ensure-seed-data.sh /usr/app/farajaland ${HOST_FARAJALAND_PATH:?Missing value for absolute path of Farajaland repository on the host machine} &&
+        ./dev.sh ../core
+    working_dir: /usr/app/farajaland
+    networks:
+      - dependencies
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - '../opencrvs-farajaland:/usr/app/farajaland'
+      - '.:/usr/app/core'
+    environment:
+      - LOG_LEVEL=error
+      - OPENHIM_URL=http://openhim-core:5001/fhir
+      - MONGO_URL=mongodb://mongo1/user-mgnt
+      - CONFIG_MONGO_URL=mongodb://mongo1/application-config
+      - AUTH_URL=http://auth:4040
+      - FHIR_URL=http://hearth:3447/fhir
+    ports:
+      - '3040:3040'
+  login:
+    # TODO Latest tag for this would be great, but we'd need a build for multiple architectures
+    image: opencrvs/ocrvs-login:6c8200a
+    ports:
+      - '3020:80'
+    command:
+      - /bin/sh
+      - -c
+      - |
+        sed -i s~THIS_WILL_BE_REPLACED_BY_RUNTIME_ENV_VARIABLE~http://localhost:3040~g /usr/share/nginx/html/index.html &&
+        nginx -g 'daemon off;'
+    networks:
+      - dependencies
+    volumes:
+      - './infrastructure/development/nginx-default.dev.conf:/etc/nginx/conf.d/default.conf'
+
+networks:
+  dependencies:
+    external:
+      name: opencrvs_default

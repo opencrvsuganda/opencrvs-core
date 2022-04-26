@@ -26,7 +26,12 @@ import {
   JURISDICTION_TYPE_IDENTIFIER
 } from '@metrics/features/metrics/constants'
 import { IAuthHeader } from '@metrics/features/registration'
-import { fetchLocation, fetchFromResource, fetchFHIR } from '@metrics/api'
+import {
+  fetchLocation,
+  fetchFromResource,
+  fetchFHIR,
+  fetchChildLocationsByParentId
+} from '@metrics/api'
 import { getApplicationConfig } from '@metrics/configApi'
 export const YEARLY_INTERVAL = '365d'
 export const MONTHLY_INTERVAL = '30d'
@@ -151,7 +156,7 @@ export const fetchEstimateByLocation = async (
       maleEstimation: 0,
       femaleEstimation: 0,
       locationId: locationData.id,
-      estimationYear: toYear,
+      estimationYear: toYear, // TODO: Check if we actually need it
       locationLevel: getLocationLevelFromLocationData(locationData)
     }
   }
@@ -265,32 +270,61 @@ export const getLocationLevelFromLocationData = (locationData: Location) => {
 }
 
 export const fetchEstimateForTargetDaysByLocationId = async (
-  locationId: string,
+  locationId: string | undefined,
   event: EVENT_TYPE,
   authHeader: IAuthHeader,
   timeFrom: string,
   timeTo: string
 ): Promise<IEstimation> => {
-  const locationData: Location = await fetchFHIR(locationId, authHeader)
-  return await fetchEstimateByLocation(
-    locationData,
-    event,
-    authHeader,
-    timeFrom,
-    timeTo
-  )
+  if (locationId) {
+    const locationData: Location = await fetchFHIR(locationId, authHeader)
+    return await fetchEstimateByLocation(
+      locationData,
+      event,
+      authHeader,
+      timeFrom,
+      timeTo
+    )
+  } else {
+    const locationData = (await fetchChildLocationsByParentId(
+      'Location/0',
+      authHeader
+    )) as Location[]
+
+    const total = {
+      totalEstimation: 0,
+      maleEstimation: 0,
+      femaleEstimation: 0,
+      locationId: 'Location/0',
+      estimationYear: new Date(timeTo).getFullYear(), // TODO: Check if we actually need it
+      locationLevel: 'COUNTRY'
+    }
+
+    for (const location of locationData) {
+      const estimate = await fetchEstimateByLocation(
+        location,
+        event,
+        authHeader,
+        timeFrom,
+        timeTo
+      )
+      total.totalEstimation += estimate.totalEstimation || 0
+      total.maleEstimation += estimate.maleEstimation || 0
+      total.femaleEstimation += estimate.femaleEstimation || 0
+    }
+    return total
+  }
 }
 
 export const getDistrictLocation = async (
   locationId: string,
   authHeader: IAuthHeader
 ): Promise<Location> => {
-  let locationBundle: Location
-  let locationType: fhir.Identifier | undefined
   let lId = locationId
 
-  locationBundle = await fetchLocation(lId, authHeader)
-  locationType = getLocationType(locationBundle)
+  let locationBundle = await fetchLocation(lId, authHeader)
+
+  let locationType = getLocationType(locationBundle)
   while (
     locationBundle &&
     (!locationType || locationType.value !== 'DISTRICT')
@@ -309,7 +343,7 @@ export const getDistrictLocation = async (
     throw new Error('No district location found')
   }
 
-  return locationBundle
+  return locationBundle as Location
 }
 
 function getLocationType(locationBundle: fhir.Location) {
@@ -405,4 +439,21 @@ export async function getRegistrationTargetDays(event: string) {
       ? applicationConfig.BIRTH?.REGISTRATION_TARGET
       : applicationConfig.DEATH?.REGISTRATION_TARGET
   return targetDays
+}
+
+export async function getRegistrationLateTargetDays(
+  event: string
+): Promise<number | null> {
+  const applicationConfig = await getApplicationConfig()
+  const targetDays =
+    event === EVENT_TYPE.BIRTH
+      ? applicationConfig.BIRTH?.LATE_REGISTRATION_TARGET
+      : null
+  return targetDays
+}
+
+export function getPercentage(value: number, total: number, decimalPoint = 2) {
+  return value === 0 || total === 0
+    ? 0
+    : Number(((value / total) * 100).toFixed(decimalPoint))
 }

@@ -56,17 +56,18 @@ type Query {
     sort: String
   ): SearchFieldAgentResult
   verifyPasswordById(id: String!, password: String!): VerifyPasswordResult
-  fetchRegistrationMetrics(
+  getTotalMetrics(
     timeStart: String!
     timeEnd: String!
-    locationId: String!
+    locationId: String
     event: String!
-  ): RegistrationMetrics
-  getEventEstimationMetrics(
+  ): TotalMetricsResult
+  getTotalPayments(
     timeStart: String!
     timeEnd: String!
-    locationId: String!
-  ): EventEstimationMetrics
+    locationId: String
+    event: String!
+  ): [PaymentMetric!]
   getDeclarationsStartedMetrics(
     timeStart: String!
     timeEnd: String!
@@ -359,16 +360,14 @@ type VerifyPasswordResult {
   id: String
 }
 
-type RegistrationMetrics {
-  genderBasisMetrics: RegistrationGenderBasisMetrics
-  timeFrames: RegistrationTimeFrameMetrics
-  estimatedTargetDayMetrics: RegistrationTargetDayEstimatedMetrics
-  payments: CertificationPaymentMetrics
+type TotalMetricsResult {
+  estimated: Estimation!
+  results: [EventMetrics!]!
 }
 
-type EventEstimationMetrics {
-  birthTargetDayMetrics: EstimationMetrics
-  deathTargetDayMetrics: EstimationMetrics
+type PaymentMetric {
+  total: Float!
+  paymentType: String!
 }
 
 type DeclarationsStartedMetrics {
@@ -796,8 +795,8 @@ enum LocationType {
   ADMIN_STRUCTURE
   CRVS_OFFICE
   PRIVATE_HOME
-  CURRENT
-  PERMANENT
+  SECONDARY_ADDRESS
+  PRIMARY_ADDRESS
   MILITARY_BASE_OR_CANTONMENT
   IDP_CAMP
   UNHCR_CAMP
@@ -828,32 +827,21 @@ type SearchFieldAgentResponse {
   averageTimeForDeclaredDeclarations: Int
 }
 
-type RegistrationGenderBasisMetrics {
-  details: [GenderBasisDetailsMetrics!]
-  total: GenderBasisTotalCount
+type Estimation {
+  totalEstimation: Int!
+  maleEstimation: Int!
+  femaleEstimation: Int!
+  locationId: String!
+  estimationYear: Int!
+  locationLevel: String!
 }
 
-type RegistrationTimeFrameMetrics {
-  details: [TimeFrameDetailMetrics!]
-  total: TimeFrameTotalCount
-}
-
-type RegistrationTargetDayEstimatedMetrics {
-  details: [EstimatedTargetDayMetrics!]
-  total: EstimateTargetDayTotalCount
-}
-
-type CertificationPaymentMetrics {
-  details: [CertificationPaymentDetailsMetrics!]
-  total: CertificationPaymentTotalCount
-}
-
-type EstimationMetrics {
-  actualRegistration: Int!
-  estimatedRegistration: Float!
-  estimatedPercentage: Float!
-  malePercentage: Float!
-  femalePercentage: Float!
+type EventMetrics {
+  total: Int!
+  gender: String!
+  eventLocationType: String!
+  timeLabel: String!
+  practitionerRole: String!
 }
 
 type MonthWiseTargetDayEstimation {
@@ -1146,9 +1134,8 @@ enum AddressType {
   ADMIN_STRUCTURE
   CRVS_OFFICE
   PRIVATE_HOME
-  PLACE_OF_HERITAGE
-  CURRENT
-  PERMANENT
+  SECONDARY_ADDRESS
+  PRIMARY_ADDRESS
   MILITARY_BASE_OR_CANTONMENT
   IDP_CAMP
   UNHCR_CAMP
@@ -1212,64 +1199,6 @@ enum AttachmentSubject {
   WARD_COUNCILLOR_PROOF
   CAUSE_OF_DEATH
   CORONERS_REPORT
-}
-
-type GenderBasisDetailsMetrics {
-  location: ID!
-  maleUnder18: Int!
-  femaleUnder18: Int!
-  maleOver18: Int!
-  femaleOver18: Int!
-  total: Int!
-}
-
-type GenderBasisTotalCount {
-  maleUnder18: Int!
-  femaleUnder18: Int!
-  maleOver18: Int!
-  femaleOver18: Int!
-  total: Int!
-}
-
-type TimeFrameDetailMetrics {
-  locationId: String!
-  regWithinTargetd: Int!
-  regWithinTargetdTo1yr: Int!
-  regWithin1yrTo5yr: Int!
-  regOver5yr: Int!
-  total: Int!
-}
-
-type TimeFrameTotalCount {
-  regWithinTargetd: Int!
-  regWithinTargetdTo1yr: Int!
-  regWithin1yrTo5yr: Int!
-  regOver5yr: Int!
-  total: Int!
-}
-
-type EstimatedTargetDayMetrics {
-  locationId: String!
-  estimatedRegistration: Float!
-  registrationInTargetDay: Int!
-  estimationYear: Int!
-  estimationLocationLevel: String!
-  estimationPercentage: Float!
-}
-
-type EstimateTargetDayTotalCount {
-  estimatedRegistration: Float!
-  registrationInTargetDay: Int!
-  estimationPercentage: Float!
-}
-
-type CertificationPaymentDetailsMetrics {
-  total: Int!
-  locationId: String!
-}
-
-type CertificationPaymentTotalCount {
-  total: Int!
 }
 
 type RegistrationSearchSet {

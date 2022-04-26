@@ -35,6 +35,10 @@ interface IGroupedByGender {
   gender: string
 }
 
+interface IMetricsTotalGroup extends IGroupedByGender {
+  practitionerRole: string
+  timeLabel: string
+}
 export interface IBirthKeyFigures {
   label: string
   value: number
@@ -821,6 +825,47 @@ export async function fetchLocationWiseEventEstimations(
               100
             ).toFixed(2)
           )
+  }
+}
+
+export async function getTotalMetrics(
+  timeFrom: string,
+  timeTo: string,
+  locationId: string | undefined,
+  event: EVENT_TYPE,
+  authHeader: IAuthHeader
+) {
+  const measurement = event === EVENT_TYPE.BIRTH ? 'birth_reg' : 'death_reg'
+  const column = event === EVENT_TYPE.BIRTH ? 'ageInDays' : 'deathDays'
+
+  const totalMetrics: IMetricsTotalGroup[] = await query(
+    `SELECT COUNT(${column}) AS total
+      FROM ${measurement}
+    WHERE time > '${timeFrom}'
+      AND time <= '${timeTo}'
+      ${
+        locationId
+          ? `AND ( locationLevel2 = '${locationId}'
+      OR locationLevel3 = '${locationId}'
+      OR locationLevel4 = '${locationId}'
+      OR locationLevel5 = '${locationId}')`
+          : ``
+      }
+    GROUP BY gender, timeLabel, eventLocationType, practitionerRole`
+  )
+
+  const estimationOfTimeRange: IEstimation =
+    await fetchEstimateForTargetDaysByLocationId(
+      locationId,
+      event,
+      authHeader,
+      timeFrom,
+      timeTo
+    )
+
+  return {
+    estimated: estimationOfTimeRange,
+    results: totalMetrics
   }
 }
 

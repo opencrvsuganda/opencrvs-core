@@ -93,6 +93,21 @@ if [ -z "$KIBANA_PASSWORD" ] ; then
     print_usage_and_exit
 fi
 
+if [ -z "$ELASTICSEARCH_SUPERUSER_PASSWORD" ] ; then
+    echo 'Error: Missing environment variable ELASTICSEARCH_SUPERUSER_PASSWORD.'
+    print_usage_and_exit
+fi
+
+if [ -z "$MONGODB_ADMIN_USER" ] ; then
+    echo 'Error: Missing environment variable MONGODB_ADMIN_USER.'
+    print_usage_and_exit
+fi
+
+if [ -z "$MONGODB_ADMIN_PASSWORD" ] ; then
+    echo 'Error: Missing environment variable MONGODB_ADMIN_PASSWORD.'
+    print_usage_and_exit
+fi
+
 ENV=$4
 HOST=$5
 VERSION=$6
@@ -121,6 +136,22 @@ HEARTH_MONGODB_PASSWORD=`generate_password`
 CONFIG_MONGODB_PASSWORD=`generate_password`
 OPENHIM_MONGODB_PASSWORD=`generate_password`
 WEBHOOKS_MONGODB_PASSWORD=`generate_password`
+
+#
+# Elasticsearch credentials
+#
+# Notice that all of these passwords change on each deployment.
+
+# Application password for OpenCRVS Search
+ROTATING_SEARCH_ELASTIC_PASSWORD=`generate_password`
+# If new applications require access to ElasticSearch, new passwords should be generated here.
+# Remember to add the user to infrastructure/elasticsearch/setup-users.sh so it is created when you deploy.
+
+# Used by Metricsbeat when writing data to ElasticSearch
+ROTATING_METRICBEAT_ELASTIC_PASSWORD=`generate_password`
+
+# Used by APM for writing data to ElasticSearch
+ROTATING_APM_ELASTIC_PASSWORD=`generate_password`
 
 echo
 echo "Deploying VERSION $VERSION to $SSH_HOST..."
@@ -152,7 +183,7 @@ rsync -rP /tmp/compose/infrastructure $SSH_USER@$SSH_HOST:/tmp/compose
 
 # Prepare docker-compose.deploy.yml and docker-compose.<COUNTRY>.yml file - rotate secrets etc
 if [[ "$ENV" = "development" ]]; then
-    ssh $SSH_USER@$SSH_HOST '/tmp/compose/infrastructure/rotate-secrets.sh /tmp/compose/docker-compose.deploy.yml /tmp/compose/docker-compose.countryconfig.staging-deploy.yml | tee -a '$LOG_LOCATION'/rotate-secrets.log'
+    ssh $SSH_USER@$SSH_HOST '/tmp/compose/infrastructure/rotate-secrets.sh /tmp/compose/docker-compose.deploy.yml /tmp/compose/docker-compose.countryconfig.staging-deploy.yml /tmp/compose/docker-compose.staging-deploy.yml | tee -a '$LOG_LOCATION'/rotate-secrets.log'
 elif [[ "$ENV" = "qa" ]]; then
     ssh $SSH_USER@$SSH_HOST '/tmp/compose/infrastructure/rotate-secrets.sh /tmp/compose/docker-compose.deploy.yml /tmp/compose/docker-compose.qa-deploy.yml /tmp/compose/docker-compose.countryconfig.qa-deploy.yml | tee -a '$LOG_LOCATION'/rotate-secrets.log'
 else
@@ -169,7 +200,31 @@ else
 fi
 
 # Setup configuration files and compose file for the deployment domain
-ssh $SSH_USER@$SSH_HOST "KIBANA_USERNAME=$KIBANA_USERNAME KIBANA_PASSWORD=$KIBANA_PASSWORD SLACK_WEBHOOK_URL=$SLACK_WEBHOOK_URL /tmp/compose/infrastructure/setup-deploy-config.sh $HOST | tee -a $LOG_LOCATION/setup-deploy-config.log"
+ssh $SSH_USER@$SSH_HOST "SLACK_WEBHOOK_URL=$SLACK_WEBHOOK_URL /tmp/compose/infrastructure/setup-deploy-config.sh $HOST | tee -a $LOG_LOCATION/setup-deploy-config.log"
+
+docker_stack_deploy() {
+  local environment_compose=${1}
+  ssh $SSH_USER@$SSH_HOST 'cd /tmp/compose && \
+    HOSTNAME='$HOST' \
+    VERSION='$VERSION' \
+    COUNTRY_CONFIG_VERSION='$COUNTRY_CONFIG_VERSION' \
+    PAPERTRAIL='$PAPERTRAIL' \
+    USER_MGNT_MONGODB_PASSWORD='$USER_MGNT_MONGODB_PASSWORD' \
+    HEARTH_MONGODB_PASSWORD='$HEARTH_MONGODB_PASSWORD' \
+    CONFIG_MONGODB_PASSWORD='$CONFIG_MONGODB_PASSWORD' \
+    OPENHIM_MONGODB_PASSWORD='$OPENHIM_MONGODB_PASSWORD' \
+    WEBHOOKS_MONGODB_PASSWORD='$WEBHOOKS_MONGODB_PASSWORD' \
+    MONGODB_ADMIN_USER='$MONGODB_ADMIN_USER' \
+    MONGODB_ADMIN_PASSWORD='$MONGODB_ADMIN_PASSWORD' \
+    ELASTICSEARCH_SUPERUSER_PASSWORD='$ELASTICSEARCH_SUPERUSER_PASSWORD' \
+    ROTATING_METRICBEAT_ELASTIC_PASSWORD='$ROTATING_METRICBEAT_ELASTIC_PASSWORD' \
+    ROTATING_APM_ELASTIC_PASSWORD='$ROTATING_APM_ELASTIC_PASSWORD' \
+    ROTATING_SEARCH_ELASTIC_PASSWORD='$ROTATING_SEARCH_ELASTIC_PASSWORD' \
+    KIBANA_USERNAME='$KIBANA_USERNAME' \
+    KIBANA_PASSWORD='$KIBANA_PASSWORD' \
+    docker stack deploy -c docker-compose.deps.yml -c docker-compose.yml -c docker-compose.deploy.yml -c '$environment_compose' --with-registry-auth opencrvs'
+}
+
 
 docker_stack_deploy() {
   local environment_compose=${1}
@@ -191,9 +246,9 @@ docker_stack_deploy() {
 
 # Deploy the OpenCRVS stack onto the swarm
 if [[ "$ENV" = "development" ]]; then
-    docker_stack_deploy "docker-compose.countryconfig.staging-deploy.yml"
+    docker_stack_deploy "docker-compose.countryconfig.staging-deploy.yml -c docker-compose.staging-deploy.yml"
 elif [[ "$ENV" = "qa" ]]; then
-    docker_stack_deploy "docker-compose.countryconfig.qa-deploy.yml"
+    docker_stack_deploy "docker-compose.countryconfig.qa-deploy.yml -c docker-compose.qa-deploy.yml"
 else
   if [ "$REPLICAS" = "3" ]; then
     docker_stack_deploy "docker-compose.prod-deploy-3.yml -c docker-compose.countryconfig.prod-deploy.yml"
@@ -216,7 +271,12 @@ if [ $1 == "--clear-data=yes" ] ; then
     echo
     echo "Clearing all existing data..."
     echo
-    ssh $SSH_USER@$SSH_HOST "MONGODB_ADMIN_USER=$MONGODB_ADMIN_USER MONGODB_ADMIN_PASSWORD=$MONGODB_ADMIN_PASSWORD /tmp/compose/infrastructure/clear-all-data.sh $REPLICAS $ENV"
+    ssh $SSH_USER@$SSH_HOST "
+        ELASTICSEARCH_ADMIN_USER=elastic \
+        ELASTICSEARCH_ADMIN_PASSWORD=$ELASTICSEARCH_SUPERUSER_PASSWORD \
+        MONGODB_ADMIN_USER=$MONGODB_ADMIN_USER \
+        MONGODB_ADMIN_PASSWORD=$MONGODB_ADMIN_PASSWORD \
+        /tmp/compose/infrastructure/clear-all-data.sh $REPLICAS $ENV"
 fi
 
 if [ $2 == "--restore-metadata=yes" ] ; then

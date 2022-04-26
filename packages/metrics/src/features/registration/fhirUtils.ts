@@ -10,7 +10,7 @@
  * graphic logo are (registered/a) trademark(s) of Plan International.
  */
 import { IAuthHeader } from '@metrics/features/registration'
-import { fetchTaskHistory } from '@metrics/api'
+import { fetchLocation, fetchTaskHistory } from '@metrics/api'
 
 export const CAUSE_OF_DEATH_CODE = 'ICD10'
 export const MANNER_OF_DEATH_CODE = 'uncertified-manner-of-death'
@@ -120,6 +120,14 @@ export async function getPreviousTask(
   return findPreviousTask(taskHistory, allowedPreviousStates)
 }
 
+export function getPractitionerIdFromBundle(bundle: fhir.Bundle) {
+  const task = getTask(bundle)
+  if (!task) {
+    throw new Error('Task not found in bundle')
+  }
+  return getPractionerIdFromTask(task)
+}
+
 export function getPractionerIdFromTask(task: fhir.Task) {
   return task?.extension
     ?.find(
@@ -155,16 +163,12 @@ export function getTrackingId(task: Task) {
   return trackingIdentifier.value
 }
 
-export function getDeclarationType(task: Task): DECLARATION_TYPE | null {
-  if (!task.code || !task.code.coding) {
-    return null
-  }
-
-  const coding = task.code.coding.find(
+export function getDeclarationType(task: Task): DECLARATION_TYPE {
+  const coding = task.code?.coding?.find(
     ({ system }) => system === 'http://opencrvs.org/specs/types'
   )
   if (!coding) {
-    return null
+    throw new Error('No declaration type found in task')
   }
   return coding.code as DECLARATION_TYPE
 }
@@ -215,7 +219,39 @@ export function getRegLastOffice(bundle: fhir.Bundle) {
     regLastOffice.valueReference.reference
   )
 }
+export async function getEncounterLocationType(
+  bundle: fhir.Bundle,
+  authHeader: IAuthHeader
+) {
+  const encounter = getResourceByType<fhir.Encounter>(
+    bundle,
+    FHIR_RESOURCE_TYPE.ENCOUNTER
+  )
 
+  if (!encounter) {
+    throw new Error('Encounter not found!')
+  }
+
+  const locationId = encounter.location?.[0].location.reference
+  if (!locationId) {
+    throw new Error('Encounter location not found!')
+  }
+
+  const location = await fetchLocation(locationId, authHeader)
+  if (!location || !location.type) {
+    throw new Error(
+      `Encounter location not found from Hearth with id ${locationId}!`
+    )
+  }
+  const type = location.type.coding?.[0]?.code
+
+  if (!type) {
+    throw new Error(
+      `Encounter location was found from Hearth with id ${locationId}, but the location did not have a proper type code`
+    )
+  }
+  return type
+}
 export function getRegLastLocation(bundle: fhir.Bundle) {
   const task: fhir.Task = getResourceByType(
     bundle,
@@ -258,6 +294,7 @@ export function getResourceByType<T = fhir.Resource>(
 export enum FHIR_RESOURCE_TYPE {
   COMPOSITION = 'Composition',
   TASK = 'Task',
+  ENCOUNTER = 'Encounter',
   PAYMENT_RECONCILIATION = 'PaymentReconciliation'
 }
 

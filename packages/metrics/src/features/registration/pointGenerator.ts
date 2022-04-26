@@ -49,19 +49,28 @@ import {
   CAUSE_OF_DEATH_CODE,
   getPractionerIdFromTask,
   getTrackingId,
-  getRegLastOffice
+  getRegLastOffice,
+  getEncounterLocationType,
+  getPractitionerIdFromBundle
 } from '@metrics/features/registration/fhirUtils'
 import {
   getAgeInDays,
   getAgeInYears,
   getDurationInSeconds,
-  getDurationInDays
+  getDurationInDays,
+  getTimeLabel,
+  getAgeLabel
 } from '@metrics/features/registration/utils'
 import {
   OPENCRVS_SPECIFICATION_URL,
   Events
 } from '@metrics/features/metrics/constants'
-import { fetchParentLocationByLocationID, fetchTaskHistory } from '@metrics/api'
+import {
+  fetchParentLocationByLocationID,
+  fetchPractitionerRole,
+  fetchTaskHistory
+} from '@metrics/api'
+import { EVENT_TYPE } from '@metrics/features/metrics/utils'
 
 export const generateInCompleteFieldPoints = async (
   payload: fhir.Bundle,
@@ -110,7 +119,7 @@ export const generateInCompleteFieldPoints = async (
         missingFieldSectionId: missingFieldIds[0],
         missingFieldGroupId: missingFieldIds[1],
         missingFieldId: missingFieldIds[2],
-        eventType: getDeclarationType(task) as string,
+        eventType: getDeclarationType(task),
         regStatus: 'IN_PROGESS',
         ...locationTags
       }
@@ -141,21 +150,41 @@ export const generateBirthRegPoint = async (
   }
 
   const composition = getComposition(payload)
+
   if (!composition) {
     throw new Error('Composition not found')
   }
 
+  const practitionerId = getPractitionerIdFromBundle(payload)
+
+  if (!practitionerId) {
+    throw new Error('Practitioner id not found')
+  }
+
+  const practitionerRole = await fetchPractitionerRole(
+    practitionerId,
+    authHeader
+  )
+
+  const ageInDays =
+    (child.birthDate &&
+      getAgeInDays(child.birthDate, new Date(composition.date))) ||
+    undefined
+
   const fields: IBirthRegistrationFields = {
     compositionId: composition.id,
-    ageInDays:
-      (child.birthDate &&
-        getAgeInDays(child.birthDate, new Date(composition.date))) ||
-      undefined
+    ageInDays
   }
 
   const tags: IBirthRegistrationTags = {
     regStatus: regStatus,
+    eventLocationType: await getEncounterLocationType(payload, authHeader),
     gender: child.gender,
+    practitionerRole,
+    ageLabel: (ageInDays && getAgeLabel(ageInDays)) || undefined,
+    timeLabel:
+      (ageInDays && (await getTimeLabel(ageInDays, EVENT_TYPE.BIRTH))) ||
+      undefined,
     officeLocation: getRegLastOffice(payload),
     ...(await generatePointLocations(payload, authHeader))
   }
@@ -185,24 +214,46 @@ export const generateDeathRegPoint = async (
     throw new Error('Composition not found')
   }
 
+  const practitionerId = getPractitionerIdFromBundle(payload)
+
+  if (!practitionerId) {
+    throw new Error('Practitioner id not found')
+  }
+
+  const practitionerRole = await fetchPractitionerRole(
+    practitionerId,
+    authHeader
+  )
+
+  const deathDays =
+    (deceased.deceasedDateTime &&
+      getDurationInDays(
+        deceased.deceasedDateTime,
+        new Date(composition.date).toISOString()
+      )) ||
+    undefined
   const fields: IDeathRegistrationFields = {
     compositionId: composition.id,
     ageInYears:
       (deceased.birthDate &&
         getAgeInYears(deceased.birthDate, new Date(composition.date))) ||
       undefined,
-    deathDays:
-      (deceased.deceasedDateTime &&
-        getDurationInDays(
-          deceased.deceasedDateTime,
-          new Date(composition.date).toISOString()
-        )) ||
-      undefined
+    deathDays
   }
-
+  const deceasedAgeInDays =
+    (deceased.birthDate &&
+      getAgeInDays(deceased.birthDate, new Date(composition.date))) ||
+    undefined
   const tags: IDeathRegistrationTags = {
     regStatus: regStatus,
     gender: deceased.gender,
+    practitionerRole,
+    ageLabel:
+      (deceasedAgeInDays && getAgeLabel(deceasedAgeInDays)) || undefined,
+    timeLabel:
+      (deathDays && (await getTimeLabel(deathDays, EVENT_TYPE.DEATH))) ||
+      undefined,
+    eventLocationType: await getEncounterLocationType(payload, authHeader),
     mannerOfDeath: getObservationValueByCode(payload, MANNER_OF_DEATH_CODE),
     causeOfDeath: getObservationValueByCode(payload, CAUSE_OF_DEATH_CODE),
     officeLocation: getRegLastOffice(payload),
@@ -246,7 +297,7 @@ const generatePointLocations = async (
 export async function generatePaymentPoint(
   payload: fhir.Bundle,
   authHeader: IAuthHeader,
-  measurement = 'certification_payment'
+  paymentType: 'certification' | 'correction'
 ): Promise<IPaymentPoints> {
   const reconciliation = getPaymentReconciliation(payload)
   const composition = getComposition(payload)
@@ -271,11 +322,12 @@ export async function generatePaymentPoint(
   const tags = {
     eventType: getDeclarationType(task),
     officeLocation: getRegLastOffice(payload),
+    paymentType,
     ...(await generatePointLocations(payload, authHeader))
   }
 
   return {
-    measurement,
+    measurement: 'payment',
     tags,
     fields,
     timestamp: toInfluxTimestamp(reconciliation.created)
@@ -330,7 +382,7 @@ export async function generateEventDurationPoint(
   const tags: IDurationTags = {
     currentStatus: getDeclarationStatus(currentTask) as string,
     previousStatus: getDeclarationStatus(previousTask) as string,
-    eventType: getDeclarationType(currentTask) as string
+    eventType: getDeclarationType(currentTask)
   }
 
   return {
@@ -382,7 +434,7 @@ export async function generateTimeLoggedPoint(
   const tags: ITimeLoggedTags = {
     currentStatus: getDeclarationStatus(currentTask) as string,
     trackingId: getTrackingId(currentTask) as string,
-    eventType: getDeclarationType(currentTask) as string,
+    eventType: getDeclarationType(currentTask),
     practitionerId: getPractionerIdFromTask(currentTask),
     officeLocation: getRegLastOffice(payload),
     ...(await generatePointLocations(payload, authHeader))

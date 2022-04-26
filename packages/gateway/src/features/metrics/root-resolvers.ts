@@ -12,17 +12,13 @@
 import { GQLResolver } from '@gateway/graphql/schema'
 import {
   getMetrics,
-  timeFrameTotalCalculator,
-  genderBasisTotalCalculator,
-  paymentTotalCalculator,
-  estimatedTargetDayMetricsTotalCalculator,
   eventInTargetDayEstimationCalculator
 } from '@gateway/features/fhir/utils'
 
 export interface IMetricsParam {
   timeStart: string
   timeEnd: string
-  locationId: string
+  locationId?: string
   event?: string
   practitionerIds?: string[]
   practitionerId?: string
@@ -31,51 +27,34 @@ export interface IMetricsParam {
 
 export const resolvers: GQLResolver = {
   Query: {
-    async fetchRegistrationMetrics(
+    async getTotalMetrics(
       _,
       { timeStart, timeEnd, locationId, event },
       authHeader
     ) {
-      const params: IMetricsParam = {
-        timeStart,
-        timeEnd,
-        locationId,
-        event
-      }
-      const metricsData = await getMetrics('/metrics', params, authHeader)
-
-      return {
-        timeFrames: {
-          details: metricsData.timeFrames,
-          total: timeFrameTotalCalculator(metricsData.timeFrames)
-        },
-        genderBasisMetrics: {
-          details: metricsData.genderBasisMetrics,
-          total: genderBasisTotalCalculator(metricsData.genderBasisMetrics)
-        },
-        estimatedTargetDayMetrics: {
-          details: metricsData.estimatedTargetDayMetrics,
-          total: estimatedTargetDayMetricsTotalCalculator(
-            metricsData.estimatedTargetDayMetrics
-          )
-        },
-        payments: {
-          details: metricsData.payments,
-          total: paymentTotalCalculator(metricsData.payments)
-        }
-      }
-    },
-    async getEventEstimationMetrics(
-      _,
-      { timeStart, timeEnd, locationId },
-      authHeader
-    ) {
       return getMetrics(
-        '/eventEstimations',
+        '/totalMetrics',
         {
           timeStart,
           timeEnd,
-          locationId
+          locationId,
+          event
+        },
+        authHeader
+      )
+    },
+    async getTotalPayments(
+      _,
+      { timeStart, timeEnd, locationId, event },
+      authHeader
+    ) {
+      return getMetrics(
+        '/totalPayments',
+        {
+          timeStart,
+          timeEnd,
+          locationId,
+          event
         },
         authHeader
       )

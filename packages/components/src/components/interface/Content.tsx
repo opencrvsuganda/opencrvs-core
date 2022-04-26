@@ -13,7 +13,6 @@ import * as React from 'react'
 import { ReactElement } from 'react'
 import styled, { ThemeConsumer } from 'styled-components'
 import { colors } from '../colors'
-import { FormTabs, IFormTabProps } from '../forms/FormTabs'
 import { Box } from './Box'
 
 const Container = styled(Box)<{ size: string }>`
@@ -61,19 +60,28 @@ const Footer = styled.div`
   height: 72px;
   padding-top: 24px;
 `
-const TopTabBar = styled.div`
+const TopTabBar = styled.div<{
+  noTabBarBorder?: boolean
+}>`
   display: flex;
   gap: 28px;
   width: 100%;
   padding: 0;
-  margin-top: -8px;
   position: relative;
   & > div {
     bottom: -1px;
   }
+  @media (max-width: ${({ theme }) => theme.grid.breakpoints.lg}px) {
+    padding: 16px 16px 0;
+  }
+
   @media (max-width: ${({ theme }) => theme.grid.breakpoints.md}px) {
-    padding: 24px 16px 0;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grey300};
+    ${({ noTabBarBorder }) =>
+      noTabBarBorder &&
+      `
+      border-bottom: 0;
+    `};
   }
 `
 const TopBar = styled.div`
@@ -82,7 +90,7 @@ const TopBar = styled.div`
   justify-content: space-between;
   width: 100%;
   padding: 16px 0;
-  @media (max-width: ${({ theme }) => theme.grid.breakpoints.md}px) {
+  @media (max-width: ${({ theme }) => theme.grid.breakpoints.lg}px) {
     display: none;
   }
 `
@@ -121,10 +129,11 @@ interface IProps {
   title?: string
   titleColor?: keyof typeof colors
   topActionButtons?: ReactElement[]
-  tabs?: IFormTabProps
+  tabBarContent?: React.ReactNode
   subtitle?: string
   children?: React.ReactNode
   bottomActionButtons?: ReactElement[]
+  noTabBarBorder?: boolean
   size?: ContentSize
 }
 
@@ -135,10 +144,11 @@ export class Content extends React.Component<IProps> {
       title,
       titleColor,
       topActionButtons,
-      tabs,
+      tabBarContent,
       subtitle,
       children,
       bottomActionButtons,
+      noTabBarBorder,
       size
     } = this.props
     return (
@@ -153,13 +163,9 @@ export class Content extends React.Component<IProps> {
               <TopActionBar>{topActionButtons}</TopActionBar>
             )}
           </TopBar>
-          {tabs && (
-            <TopTabBar>
-              <FormTabs
-                sections={tabs.sections}
-                activeTabId={tabs.activeTabId}
-                onTabClick={(id: string) => tabs.onTabClick(id)}
-              />
+          {tabBarContent && (
+            <TopTabBar noTabBarBorder={noTabBarBorder}>
+              {tabBarContent}
             </TopTabBar>
           )}
         </Header>

@@ -24,9 +24,9 @@ import {
   OperationalReport,
   OPERATIONAL_REPORT_SECTION
 } from './OperationalReport'
-import { RegistrationRatesReport } from './reports/operational/RegistrationRatesReport'
+
 import { parse } from 'query-string'
-import { OPERATIONAL_REPORTS_METRICS } from './metricsQuery'
+import { PERFORMANCE_METRICS } from './metricsQuery'
 import { GraphQLError } from 'graphql'
 import { SEARCH_EVENTS } from '@client/views/OfficeHome/queries'
 import { COUNT_USER_WISE_DECLARATIONS } from '@client/search/queries'
@@ -67,7 +67,7 @@ describe('OperationalReport tests', () => {
       },
       {
         request: {
-          query: OPERATIONAL_REPORTS_METRICS,
+          query: PERFORMANCE_METRICS,
           variables: {
             locationId: LOCATION_DHAKA_DIVISION.id,
             timeEnd: new Date(1487076708000).toISOString(),
@@ -150,25 +150,6 @@ describe('OperationalReport tests', () => {
     expect(
       component.find('#registration-rates-reports-loader').hostNodes()
     ).toHaveLength(0)
-  })
-
-  it('on details link click will forward time range and location to route', async () => {
-    const registrationRatesReports = await waitForElement(
-      component,
-      RegistrationRatesReport
-    )
-
-    registrationRatesReports.prop('onClickEventDetails')(
-      'birth',
-      'Birth registration rate within 45 days of event'
-    )
-
-    expect(parse(history.location.search)).toEqual({
-      locationId: '6e1f3bce-7bcb-4bf6-8e35-0d9facdf158b',
-      timeEnd: new Date(1487076708000).toISOString(),
-      timeStart: new Date(1455454308000).toISOString(),
-      title: 'Birth registration rate within 45 days of event'
-    })
   })
 
   it('performance select updates history when changed', async () => {
@@ -317,7 +298,7 @@ describe('Test error toast notification', () => {
     const graphqlMock = [
       {
         request: {
-          query: OPERATIONAL_REPORTS_METRICS,
+          query: PERFORMANCE_METRICS,
           variables: {
             locationId: LOCATION_DHAKA_DIVISION.id,
             timeEnd: new Date(1487076708000).toISOString(),

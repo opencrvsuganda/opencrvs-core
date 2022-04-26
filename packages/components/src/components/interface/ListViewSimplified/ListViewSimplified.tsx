@@ -123,7 +123,7 @@ interface IListViewItemSimplifiedProps {
   image?: React.ReactNode
   label: React.ReactNode
   value?: React.ReactNode
-  actions?: React.ReactNode[]
+  actions?: React.ReactNode
 }
 
 export function ListViewItemSimplified({
@@ -157,11 +157,17 @@ export function ListViewItemSimplified({
 }
 
 export function ListViewSimplified({
+  className,
   bottomBorder = false,
   children
 }: {
   bottomBorder?: boolean
+  className?: string
   children: React.ReactNode
 }) {
-  return <Grid bottomBorder={bottomBorder}>{children}</Grid>
+  return (
+    <Grid className={className} bottomBorder={bottomBorder}>
+      {children}
+    </Grid>
+  )
 }

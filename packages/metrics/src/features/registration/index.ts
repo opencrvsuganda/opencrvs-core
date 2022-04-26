@@ -44,7 +44,11 @@ export type IAuthHeader =
 
 export interface IBirthRegistrationTags {
   regStatus: string
+  practitionerRole: string
+  eventLocationType: string
   gender: string | undefined
+  timeLabel: string | undefined
+  ageLabel: string | undefined
   officeLocation?: string
   locationLevel5?: string
   locationLevel4?: string
@@ -54,7 +58,11 @@ export interface IBirthRegistrationTags {
 
 export interface IDeathRegistrationTags {
   regStatus: string
+  practitionerRole: string
+  eventLocationType: string
   gender: string | undefined
+  timeLabel: string | undefined
+  ageLabel: string | undefined
   mannerOfDeath: string
   causeOfDeath: string
   officeLocation?: string
@@ -155,7 +163,10 @@ export interface IBirthRegistrationPoints {
 
 export interface IPaymentPoints {
   measurement: string
-  tags: ILocationTags
+  tags: ILocationTags & {
+    eventType: 'BIRTH' | 'DEATH'
+    paymentType: 'certification' | 'correction'
+  }
   fields: IPaymentFields
   timestamp: number | undefined
 }

@@ -17,13 +17,12 @@ import {
 } from '@client/components/interface/ToastNotification'
 import { Query } from '@client/components/Query'
 import { Event } from '@client/forms'
-import { buttonMessages, constantsMessages } from '@client/i18n/messages'
+import { buttonMessages } from '@client/i18n/messages'
 import { messages } from '@client/i18n/messages/views/performance'
 import { messages as statusMessages } from '@client/i18n/messages/views/registrarHome'
 import {
   goToOperationalReport,
   goToPerformanceHome,
-  goToPerformanceReport,
   goToRegistrationRates,
   goToWorkflowStatus
 } from '@client/navigation'
@@ -44,8 +43,7 @@ import {
 } from '@client/views/SysAdmin/Performance/reports/operational/StatusWiseDeclarationCountView'
 import {
   ActionContainer,
-  FilterContainer,
-  getMonthDateRange
+  FilterContainer
 } from '@client/views/SysAdmin/Performance/utils'
 import { SysAdminContentWrapper } from '@client/views/SysAdmin/SysAdminContentWrapper'
 import {
@@ -55,16 +53,12 @@ import {
 } from '@opencrvs/components/lib/buttons'
 import { colors } from '@opencrvs/components/lib/colors'
 import { Activity } from '@opencrvs/components/lib/icons'
-import {
-  ISearchLocation,
-  ColumnContentAlignment,
-  TableView
-} from '@opencrvs/components/lib/interface'
+import { ISearchLocation, Spinner } from '@opencrvs/components/lib/interface'
 import { ITheme } from '@opencrvs/components/lib/theme'
+
 import {
-  GQLDeclarationsStartedMetrics,
-  GQLEventEstimationMetrics,
-  GQLRegistrationCountResult
+  GQLRegistrationCountResult,
+  GQLTotalMetricsResult
 } from '@opencrvs/gateway/src/graphql/schema'
 import { ApolloError } from 'apollo-client'
 import { parse } from 'query-string'
@@ -73,13 +67,13 @@ import { injectIntl, WrappedComponentProps } from 'react-intl'
 import { connect } from 'react-redux'
 import { RouteComponentProps } from 'react-router'
 import { withTheme } from 'styled-components'
-import {
-  OPERATIONAL_REPORTS_METRICS,
-  OPERATIONAL_REPORTS_METRICS_FOR_OFFICE
-} from './metricsQuery'
-import { DeclarationsStartedReport } from './reports/operational/DeclarationsStartedReport'
-import { RegistrationRatesReport } from './reports/operational/RegistrationRatesReport'
+import { PERFORMANCE_METRICS } from './metricsQuery'
+
 import format from '@client/utils/date-formatting'
+
+import { CompletenessReport } from './CompletenessReport'
+import { RegistrationsReport } from './RegistrationsReport'
+
 interface IConnectProps {
   locations: { [key: string]: ILocation }
   offices: { [key: string]: ILocation }
@@ -87,16 +81,17 @@ interface IConnectProps {
 interface IDispatchProps {
   goToPerformanceHome: typeof goToPerformanceHome
   goToOperationalReport: typeof goToOperationalReport
-  goToPerformanceReport: typeof goToPerformanceReport
   goToRegistrationRates: typeof goToRegistrationRates
   goToWorkflowStatus: typeof goToWorkflowStatus
 }
 
 interface IMetricsQueryResult {
-  getEventEstimationMetrics: GQLEventEstimationMetrics
-  getDeclarationsStartedMetrics: GQLDeclarationsStartedMetrics
+  getTotalMetrics: GQLTotalMetricsResult
+}
+interface IStatusQueryResult {
   fetchRegistrationCountByStatus: GQLRegistrationCountResult
 }
+
 export enum OPERATIONAL_REPORT_SECTION {
   OPERATIONAL = 'OPERATIONAL',
   REPORTS = 'REPORTS'
@@ -118,6 +113,7 @@ interface State {
   selectedLocation: ISearchLocation
   timeStart: Date
   timeEnd: Date
+  selectedEvent: 'BIRTH' | 'DEATH'
   expandStatusWindow: boolean
   statusWindowWidth: number
   mainWindowLeftMargin: number
@@ -149,13 +145,6 @@ const Container = styled.div`
   margin-bottom: 160px;
 `
 
-const MonthlyReportsList = styled.div`
-  margin-top: 8px;
-`
-const DeathReportHolder = styled.div`
-  margin-top: 6px;
-`
-
 const StatusTitleContainer = styled.div`
   display: flex;
   flex-direction: row;
@@ -168,10 +157,6 @@ const Title = styled.div`
   @media (max-width: ${({ theme }) => theme.grid.breakpoints.md}px) {
     ${({ theme }) => theme.fonts.bold16}
   }
-`
-
-const RowLink = styled(LinkButton)`
-  padding-right: 15px !important;
 `
 
 export const StatusMapping: IStatusMapping = {
@@ -234,6 +219,7 @@ class OperationalReportComponent extends React.Component<Props, State> {
     return {
       sectionId,
       selectedLocation,
+      selectedEvent: 'BIRTH' as const,
       timeStart: new Date(timeStart),
       timeEnd: new Date(timeEnd),
       expandStatusWindow: state ? state.expandStatusWindow : false,
@@ -287,69 +273,6 @@ class OperationalReportComponent extends React.Component<Props, State> {
     this.props.goToPerformanceHome({
       selectedLocation: this.state.selectedLocation
     })
-  }
-
-  getTotal(declarationMetrics: GQLDeclarationsStartedMetrics): number {
-    return (
-      declarationMetrics.fieldAgentDeclarations +
-      declarationMetrics.hospitalDeclarations +
-      declarationMetrics.officeDeclarations
-    )
-  }
-
-  getContent(eventType: Event) {
-    window.__localeId__ = this.props.intl.locale
-    const content = []
-    const currentYear = this.state.timeStart.getFullYear()
-    let currentMonth = this.state.timeStart.getMonth() + 1
-    const startMonth =
-      this.state.timeStart.getMonth() + this.state.timeStart.getFullYear() * 12
-    const endMonth =
-      this.state.timeEnd.getMonth() + this.state.timeEnd.getFullYear() * 12
-    const monthDiff = currentMonth + (endMonth - startMonth)
-    while (currentMonth <= monthDiff) {
-      const { start, end } = getMonthDateRange(currentYear, currentMonth)
-      const title = `${format(start, 'dd MMMM')} to ${format(
-        end,
-        'dd MMMM yyyy'
-      )}`
-      content.push({
-        month: (
-          <LinkButton
-            isBoldLink={true}
-            onClick={() =>
-              this.props.goToPerformanceReport(
-                this.state.selectedLocation!,
-                eventType,
-                start,
-                end
-              )
-            }
-            disabled={!this.state.selectedLocation}
-          >
-            {title}
-          </LinkButton>
-        ),
-        export: (
-          <RowLink
-            onClick={() =>
-              this.downloadMonthlyData(start, end, eventType.toString())
-            }
-          >
-            Export
-          </RowLink>
-        )
-      })
-      currentMonth++
-    }
-    return content.reverse()
-  }
-
-  getPercentage(
-    totalMetrics: GQLDeclarationsStartedMetrics,
-    value: number
-  ): number {
-    return Math.round((value / this.getTotal(totalMetrics)) * 100)
   }
 
   onClickRegistrationRatesDetails = (event: Event, title: string) => {
@@ -412,11 +335,13 @@ class OperationalReportComponent extends React.Component<Props, State> {
       sectionId,
       timeStart,
       timeEnd,
+      selectedEvent,
       expandStatusWindow,
       statusWindowWidth,
       mainWindowLeftMargin,
       mainWindowRightMargin
     } = this.state
+
     const role = userDetails && userDetails.role
 
     const { displayLabel: title, id: locationId } = selectedLocation
@@ -487,15 +412,12 @@ class OperationalReportComponent extends React.Component<Props, State> {
           </ActionContainer>
           {sectionId === OPERATIONAL_REPORT_SECTION.OPERATIONAL && (
             <Query
-              query={
-                this.isOfficeSelected()
-                  ? OPERATIONAL_REPORTS_METRICS_FOR_OFFICE
-                  : OPERATIONAL_REPORTS_METRICS
-              }
+              query={PERFORMANCE_METRICS}
               variables={{
                 timeStart: timeStart.toISOString(),
                 timeEnd: timeEnd.toISOString(),
-                locationId
+                locationId,
+                event: selectedEvent
               }}
               fetchPolicy="no-cache"
             >
@@ -511,96 +433,29 @@ class OperationalReportComponent extends React.Component<Props, State> {
                 if (error) {
                   return (
                     <>
-                      {!this.isOfficeSelected() && (
-                        <RegistrationRatesReport loading={true} />
-                      )}
-                      <DeclarationsStartedReport
-                        loading={true}
-                        locationId={locationId}
-                        reportTimeFrom={timeStart}
-                        reportTimeTo={timeEnd}
-                      />
                       <ToastNotification type={NOTIFICATION_TYPE.ERROR} />
                     </>
                   )
-                } else {
-                  return (
-                    <>
-                      {!this.isOfficeSelected() && (
-                        <RegistrationRatesReport
-                          loading={loading}
-                          data={data && data.getEventEstimationMetrics}
-                          reportTimeFrom={format(timeStart, 'MMMM yyyy')}
-                          reportTimeTo={format(timeEnd, 'MMMM yyyy')}
-                          onClickEventDetails={
-                            this.onClickRegistrationRatesDetails
-                          }
-                        />
-                      )}
-                      <DeclarationsStartedReport
-                        loading={loading}
-                        locationId={locationId}
-                        data={data && data.getDeclarationsStartedMetrics}
-                        reportTimeFrom={timeStart}
-                        reportTimeTo={timeEnd}
-                      />
-                    </>
-                  )
                 }
+
+                if (loading) {
+                  return <Spinner id="performance-home-loading" />
+                }
+
+                return (
+                  <>
+                    <CompletenessReport
+                      data={data!.getTotalMetrics}
+                      selectedEvent={selectedEvent}
+                    />
+                    <RegistrationsReport
+                      data={data!.getTotalMetrics}
+                      selectedEvent={selectedEvent}
+                    />
+                  </>
+                )
               }}
             </Query>
-          )}
-          {sectionId === OPERATIONAL_REPORT_SECTION.REPORTS && (
-            <MonthlyReportsList id="report-lists">
-              <TableView
-                hideTableHeader={true}
-                tableTitle={intl.formatMessage(constantsMessages.births)}
-                isLoading={false}
-                content={this.getContent(Event.BIRTH)}
-                tableHeight={280}
-                pageSize={24}
-                hideBoxShadow={true}
-                columns={[
-                  {
-                    label: intl.formatMessage(constantsMessages.month),
-                    width: 70,
-                    key: 'month'
-                  },
-                  {
-                    label: intl.formatMessage(constantsMessages.export),
-                    width: 30,
-                    alignment: ColumnContentAlignment.RIGHT,
-                    key: 'export'
-                  }
-                ]}
-                noResultText={intl.formatMessage(constantsMessages.noResults)}
-              />
-              <DeathReportHolder>
-                <TableView
-                  hideTableHeader={true}
-                  tableTitle={intl.formatMessage(constantsMessages.deaths)}
-                  isLoading={false}
-                  content={this.getContent(Event.DEATH)}
-                  tableHeight={280}
-                  pageSize={24}
-                  hideBoxShadow={true}
-                  columns={[
-                    {
-                      label: intl.formatMessage(constantsMessages.month),
-                      width: 70,
-                      key: 'month'
-                    },
-                    {
-                      label: intl.formatMessage(constantsMessages.export),
-                      width: 30,
-                      alignment: ColumnContentAlignment.RIGHT,
-                      key: 'export'
-                    }
-                  ]}
-                  noResultText={intl.formatMessage(constantsMessages.noResults)}
-                />
-              </DeathReportHolder>
-            </MonthlyReportsList>
           )}
         </Container>
         {expandStatusWindow && (
@@ -630,7 +485,7 @@ class OperationalReportComponent extends React.Component<Props, State> {
               }: {
                 loading: boolean
                 error?: ApolloError
-                data?: IMetricsQueryResult
+                data?: IStatusQueryResult
               }) => {
                 if (error) {
                   return (
@@ -674,7 +529,6 @@ function mapStateToProps(state: IStoreState) {
 export const OperationalReport = connect(mapStateToProps, {
   goToPerformanceHome,
   goToOperationalReport,
-  goToPerformanceReport,
   goToRegistrationRates,
   goToWorkflowStatus
 })(withTheme(injectIntl(OperationalReportComponent)))

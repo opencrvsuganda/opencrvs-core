@@ -26,7 +26,6 @@ import {
   requestCorrectionHandler
 } from '@metrics/features/registration/handler'
 import { metricsHandler } from '@metrics/features/metrics/handler'
-import { eventEstimationsHandler } from '@metrics/features/eventEstimations/handler'
 import { monthWiseEventEstimationsHandler } from '@metrics/features/monthWiseEventEstimations/handler'
 import { locationWiseEventEstimationsHandler } from '@metrics/features/locationWiseEventEstimations/handler'
 import {
@@ -43,6 +42,8 @@ import {
   generateLegacyEventDurationHandler
 } from '@metrics/features/legacy/handler'
 import { getEventDurationHandler } from '@metrics/features/getEventDuration/handler'
+import { totalMetricsHandler } from '@metrics/features/totalMetrics/handler'
+import { totalPaymentsHandler } from '@metrics/features/payments/handler'
 
 export const getRoutes = () => {
   const routes = [
@@ -275,17 +276,33 @@ export const getRoutes = () => {
       }
     },
 
-    // Area wise estimation query API
     {
       method: 'GET',
-      path: '/eventEstimations',
-      handler: eventEstimationsHandler,
+      path: '/totalMetrics',
+      handler: totalMetricsHandler,
       config: {
         validate: {
           query: Joi.object({
             timeStart: Joi.string().required(),
             timeEnd: Joi.string().required(),
-            locationId: Joi.string().required()
+            locationId: Joi.string(),
+            event: Joi.string().required()
+          })
+        },
+        tags: ['api']
+      }
+    },
+    {
+      method: 'GET',
+      path: '/totalPayments',
+      handler: totalPaymentsHandler,
+      config: {
+        validate: {
+          query: Joi.object({
+            timeStart: Joi.string().required(),
+            timeEnd: Joi.string().required(),
+            locationId: Joi.string(),
+            event: Joi.string().required()
           })
         },
         tags: ['api']

@@ -11,7 +11,6 @@
  */
 import fetch from 'node-fetch'
 import { stringify } from 'querystring'
-import { Iconv } from 'iconv'
 
 import {
   SMS_PROVIDER,
@@ -41,7 +40,7 @@ async function sendSMSClickatell(
   if (convertUnicode) {
     params = {
       ...params,
-      text: new Iconv('UTF-8', 'UCS-2BE').convert(message).toString('hex'),
+      text: message,
       unicode: 1
     }
   }

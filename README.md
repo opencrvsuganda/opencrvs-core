@@ -129,7 +129,7 @@ Username: **derrick.bulaya** / Password: **test** / SMS code: **000000** / Offic
 
 ### Local System Admin
 
-Username: **emmanuel.mayuka** / Password: **test** / SMS code: **000000** / Office: **Ibombo District, Central Province**
+Username: **emmanuel.mayuka** / Password: **Welcome321** / SMS code: **000000** / Office: **Ibombo District, Central Province**
 
 Username: **alex.ngonga** / Password: **test** / SMS code: **000000** / Office: **Ilanga District, Sulaka Province**
 

@@ -60,6 +60,7 @@ import {
   IOnlineStatusProps,
   withOnlineStatus
 } from '@client/views/OfficeHome/LoadingIndicator'
+import { DynamicHeightLinkButton } from './utils'
 
 const BodyContainer = styled.div`
   margin-left: 0px;
@@ -112,10 +113,6 @@ const TopAlignedListViewItemSimplified = styled(ListViewItemSimplified)`
   align-items: start;
   padding: 16px 0;
 `
-export const DynamicHeightLinkButton = styled(LinkButton)`
-  height: auto;
-`
-
 interface IState {
   showLanguageSettings: boolean
   selectedLanguage: string

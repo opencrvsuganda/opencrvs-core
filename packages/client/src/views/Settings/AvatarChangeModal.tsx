@@ -35,7 +35,7 @@ import {
 } from '@client/views/OfficeHome/LoadingIndicator'
 import { ITheme } from '@opencrvs/components/lib/theme'
 import { withTheme } from 'styled-components'
-import { DynamicHeightLinkButton } from './SettingsPage'
+import { DynamicHeightLinkButton } from './utils'
 
 const Container = styled.div`
   align-self: center;

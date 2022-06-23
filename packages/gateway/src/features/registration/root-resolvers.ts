@@ -24,15 +24,15 @@ import {
   removeDuplicatesFromComposition,
   getRegistrationIds,
   getDeclarationIds,
-  getStatusFromTask,
-  findExtension
+  getStatusFromTask
 } from '@gateway/features/fhir/utils'
 import {
   buildFHIRBundle,
   updateFHIRTaskBundle,
   addOrUpdateExtension,
   ITaskBundle,
-  checkUserAssignment
+  checkUserAssignment,
+  removeExtensionsFromTaskResourse
 } from '@gateway/features/registration/fhir-builders'
 import { hasScope } from '@gateway/features/user/utils'
 import {
@@ -382,14 +382,7 @@ export const resolvers: GQLResolver = {
         )
         const taskResource = newTaskBundle.entry[0].resource
         // remove assigned extension when reject
-        if (
-          taskResource.extension &&
-          findExtension(ASSIGNED_EXTENSION_URL, taskResource.extension)
-        ) {
-          taskResource.extension = taskResource.extension.filter(
-            (ext) => ext.url !== ASSIGNED_EXTENSION_URL
-          )
-        }
+        removeExtensionsFromTaskResourse(taskResource, [ASSIGNED_EXTENSION_URL])
 
         await fetchFHIR(
           '/Task',
@@ -426,18 +419,10 @@ export const resolvers: GQLResolver = {
         const newTaskBundle = await updateFHIRTaskBundle(taskEntry, status)
         const taskResource = newTaskBundle.entry[0].resource
         // remove downloaded and assigned extension while archiving
-        if (
-          taskResource.extension &&
-          (findExtension(DOWNLOADED_EXTENSION_URL, taskResource.extension) ||
-            findExtension(ASSIGNED_EXTENSION_URL, taskResource.extension))
-        ) {
-          taskResource.extension = taskResource.extension.filter(
-            (ext) =>
-              ![DOWNLOADED_EXTENSION_URL, ASSIGNED_EXTENSION_URL].includes(
-                ext.url
-              )
-          )
-        }
+        removeExtensionsFromTaskResourse(taskResource, [
+          DOWNLOADED_EXTENSION_URL,
+          ASSIGNED_EXTENSION_URL
+        ])
         await fetchFHIR(
           '/Task',
           authHeader,
@@ -623,14 +608,7 @@ export const resolvers: GQLResolver = {
         }
         const taskResource = taskBundle.entry[0].resource
         // remove assigned extension when unassigned
-        if (
-          taskResource.extension &&
-          findExtension(ASSIGNED_EXTENSION_URL, taskResource.extension)
-        ) {
-          taskResource.extension = taskResource.extension.filter(
-            (ext) => ext.url !== ASSIGNED_EXTENSION_URL
-          )
-        }
+        removeExtensionsFromTaskResourse(taskResource, [ASSIGNED_EXTENSION_URL])
         taskEntry.request = {
           method: 'PUT',
           url: `Task/${taskEntry.resource.id}`
@@ -738,14 +716,7 @@ async function markEventAsValidated(
 
     const taskResource = taskBundle.entry[0].resource
     // remove assigned extension when reject
-    if (
-      taskResource.extension &&
-      findExtension(ASSIGNED_EXTENSION_URL, taskResource.extension)
-    ) {
-      taskResource.extension = taskResource.extension.filter(
-        (ext) => ext.url !== ASSIGNED_EXTENSION_URL
-      )
-    }
+    removeExtensionsFromTaskResourse(taskResource, [ASSIGNED_EXTENSION_URL])
 
     doc = {
       resourceType: 'Bundle',

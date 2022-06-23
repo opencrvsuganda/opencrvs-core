@@ -3652,6 +3652,17 @@ export async function checkUserAssignment(
   return false
 }
 
+export async function removeExtensionsFromTaskResourse(
+  taskResource: fhir.Task,
+  extensionURLs: string[]
+) {
+  if (taskResource.extension) {
+    taskResource.extension = taskResource.extension.filter(
+      (ext) => !extensionURLs.includes(ext.url)
+    )
+  }
+}
+
 export interface ITemplatedComposition extends fhir.Composition {
   section: fhir.CompositionSection[]
   [key: string]: any

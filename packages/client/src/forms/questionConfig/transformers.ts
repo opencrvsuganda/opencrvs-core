@@ -9,12 +9,7 @@
  * Copyright (C) The OpenCRVS Authors. OpenCRVS and the OpenCRVS
  * graphic logo are (registered/a) trademark(s) of Plan International.
  */
-import {
-  IConfigField,
-  isPreviewGroupConfigField,
-  previewGroupToQuestionConfig,
-  getConfigFieldIdentifiers
-} from '@client/forms/configuration/formConfig/utils'
+import { getConfigFieldIdentifiers } from '@client/forms/configuration/formConfig/utils'
 import {
   IDefaultQuestionConfig,
   ICustomQuestionConfig,
@@ -22,7 +17,7 @@ import {
   getFieldIdentifiers,
   IQuestionConfig
 } from '.'
-import { ISerializedForm, BirthSection, DeathSection } from '@client/forms'
+import { ISerializedForm } from '@client/forms'
 import {
   getField,
   getFieldId,
@@ -32,17 +27,7 @@ import { Event, QuestionInput } from '@client/utils/gateway'
 import { populateRegisterFormsWithAddresses } from '@client/forms/configuration/administrative/addresses'
 import { registerForms } from '@client/forms/configuration/default'
 
-export function configFieldToQuestionConfig(
-  configField: IConfigField
-): Array<IDefaultQuestionConfig | ICustomQuestionConfig> {
-  if (isPreviewGroupConfigField(configField)) {
-    return previewGroupToQuestionConfig(configField)
-  }
-  const { foregoingFieldId, ...rest } = configField
-  return [rest]
-}
-
-function fieldIdentifiersToQuestionConfig(
+export function fieldIdentifiersToQuestionConfig(
   event: Event,
   defaultForm: ISerializedForm,
   identifiers: IFieldIdentifiers
@@ -59,42 +44,6 @@ function fieldIdentifiersToQuestionConfig(
       defaultForm
     )
   }
-}
-
-function formSectionToFieldIdentifiers(
-  defaultForm: ISerializedForm,
-  section: BirthSection | DeathSection
-) {
-  return defaultForm.sections
-    .map((section, sectionIndex) => ({ ...section, sectionIndex }))
-    .filter(({ id }) => id === section)
-    .map(({ groups, sectionIndex }) =>
-      groups.map((group, groupIndex) => ({
-        ...group,
-        sectionIndex,
-        groupIndex
-      }))
-    )
-    .flat()
-    .map<Array<IFieldIdentifiers>>(({ fields, sectionIndex, groupIndex }) =>
-      fields.map((_, fieldIndex) => ({
-        sectionIndex,
-        groupIndex,
-        fieldIndex
-      }))
-    )
-    .flat()
-}
-
-export function defaultFormSectionToQuestionConfigs(
-  event: Event,
-  section: BirthSection | DeathSection,
-  defaultForm: ISerializedForm
-) {
-  return formSectionToFieldIdentifiers(defaultForm, section).map(
-    (identifiers) =>
-      fieldIdentifiersToQuestionConfig(event, defaultForm, identifiers)
-  )
 }
 
 /* TODO: The paylaod needs to be validated */

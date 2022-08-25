@@ -62,7 +62,10 @@ import {
 } from '@opencrvs/components/lib/interface/Content'
 import { Spinner } from '@opencrvs/components/lib/interface/Spinner'
 import { TableView } from '@opencrvs/components/lib/interface/TableView'
-import { Pagination } from '@opencrvs/components/lib/Pagination'
+import { PaginationWrapper } from '@opencrvs/components/lib/styleForPagination/PaginationWrapper'
+import { DesktopWrapper } from '@opencrvs/components/lib/styleForPagination/DesktopWrapper'
+import { PaginationModified } from '@opencrvs/components/lib/interface/PaginationModified'
+import { MobileWrapper } from '@opencrvs/components/lib/styleForPagination/MobileWrapper'
 
 const ToolTipContainer = styled.span`
   text-align: center;
@@ -792,11 +795,24 @@ function WorkflowStatusComponent(props: WorkflowStatusProps) {
                 />
                 {error && <ToastNotification type={NOTIFICATION_TYPE.ERROR} />}
                 {total > pageSize && (
-                  <Pagination
-                    initialPage={currentPageNumber}
-                    totalPages={Math.ceil(total / pageSize)}
-                    onPageChange={onPageChange}
-                  />
+                  <PaginationWrapper id="pagination_container">
+                    <DesktopWrapper>
+                      <PaginationModified
+                        size="small"
+                        initialPage={currentPageNumber}
+                        totalPages={Math.ceil(total / pageSize)}
+                        onPageChange={onPageChange}
+                      />
+                    </DesktopWrapper>
+                    <MobileWrapper>
+                      <PaginationModified
+                        size="large"
+                        initialPage={currentPageNumber}
+                        totalPages={Math.ceil(total / pageSize)}
+                        onPageChange={onPageChange}
+                      />
+                    </MobileWrapper>
+                  </PaginationWrapper>
                 )}
               </>
             )

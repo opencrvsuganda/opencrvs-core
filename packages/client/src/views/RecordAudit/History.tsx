@@ -20,7 +20,12 @@ import {
 } from '@opencrvs/components/lib/interface'
 import { constantsMessages, userMessages } from '@client/i18n/messages'
 import { getFormattedDate, getPageItems, getStatusLabel } from './utils'
-import { Pagination } from '@opencrvs/components/lib/Pagination'
+import { PaginationModified } from '@opencrvs/components/lib/interface/PaginationModified'
+import {
+  PaginationWrapper,
+  MobileWrapper,
+  DesktopWrapper
+} from '@opencrvs/components/lib/styleForPagination'
 import { CMethodParams } from './ActionButtons'
 import { LinkButton } from '@opencrvs/components/lib/buttons/LinkButton'
 import { GQLHumanName } from '@opencrvs/gateway/src/graphql/schema'
@@ -309,13 +314,28 @@ export const GetHistory = ({
           pageSize={DEFAULT_HISTORY_RECORD_PAGE_SIZE}
         />
         {allHistoryData.length > DEFAULT_HISTORY_RECORD_PAGE_SIZE && (
-          <Pagination
-            initialPage={currentPageNumber}
-            totalPages={Math.ceil(
-              allHistoryData.length / DEFAULT_HISTORY_RECORD_PAGE_SIZE
-            )}
-            onPageChange={onPageChange}
-          />
+          <PaginationWrapper>
+            <DesktopWrapper>
+              <PaginationModified
+                size="small"
+                initialPage={currentPageNumber}
+                totalPages={Math.ceil(
+                  allHistoryData.length / DEFAULT_HISTORY_RECORD_PAGE_SIZE
+                )}
+                onPageChange={onPageChange}
+              />
+            </DesktopWrapper>
+            <MobileWrapper>
+              <PaginationModified
+                size="large"
+                initialPage={currentPageNumber}
+                totalPages={Math.ceil(
+                  allHistoryData.length / DEFAULT_HISTORY_RECORD_PAGE_SIZE
+                )}
+                onPageChange={onPageChange}
+              />
+            </MobileWrapper>
+          </PaginationWrapper>
         )}
       </TableDiv>
     </>

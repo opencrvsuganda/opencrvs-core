@@ -12,8 +12,7 @@
 import * as React from 'react'
 import styled from 'styled-components'
 import { Document, Page } from 'react-pdf'
-import { Spinner } from '../../interface'
-import { Pagination } from '../../Pagination'
+import { Pagination, Spinner } from '../../interface'
 
 const Container = styled.div`
   ${({ theme }) => theme.shadows.heavy};

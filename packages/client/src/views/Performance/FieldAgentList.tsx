@@ -48,7 +48,12 @@ import {
   ContentSize
 } from '@opencrvs/components/lib/interface/Content'
 import { IAvatar } from '@client/utils/userUtils'
-import { Pagination } from '@opencrvs/components/lib/Pagination'
+import { PaginationModified } from '@opencrvs/components/lib/interface/PaginationModified'
+import {
+  PaginationWrapper,
+  MobileWrapper,
+  DesktopWrapper
+} from '@opencrvs/components/lib/styleForPagination'
 import { userMessages } from '@client/i18n/messages'
 
 const ToolTipContainer = styled.span`
@@ -546,15 +551,32 @@ function FieldAgentListComponent(props: IProps) {
                     highlightRowOnMouseOver
                   />
                   {totalData > DEFAULT_FIELD_AGENT_LIST_SIZE && (
-                    <Pagination
-                      initialPage={currentPageNumber}
-                      totalPages={Math.ceil(
-                        totalData / DEFAULT_FIELD_AGENT_LIST_SIZE
-                      )}
-                      onPageChange={(currentPage: number) => {
-                        setCurrentPageNumber(currentPage)
-                      }}
-                    />
+                    <PaginationWrapper>
+                      <DesktopWrapper>
+                        <PaginationModified
+                          size="small"
+                          initialPage={currentPageNumber}
+                          totalPages={Math.ceil(
+                            totalData / DEFAULT_FIELD_AGENT_LIST_SIZE
+                          )}
+                          onPageChange={(currentPage: number) => {
+                            setCurrentPageNumber(currentPage)
+                          }}
+                        />
+                      </DesktopWrapper>
+                      <MobileWrapper>
+                        <PaginationModified
+                          size="large"
+                          initialPage={currentPageNumber}
+                          totalPages={Math.ceil(
+                            totalData / DEFAULT_FIELD_AGENT_LIST_SIZE
+                          )}
+                          onPageChange={(currentPage: number) => {
+                            setCurrentPageNumber(currentPage)
+                          }}
+                        />
+                      </MobileWrapper>
+                    </PaginationWrapper>
                   )}
                 </TableDiv>
               )

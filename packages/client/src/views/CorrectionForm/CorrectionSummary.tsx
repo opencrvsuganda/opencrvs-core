@@ -26,6 +26,7 @@ import {
 import {
   goBack,
   goToCertificateCorrection,
+  goToHomeFromCorrectionTab,
   goToHomeTab,
   goToPageGroup
 } from '@client/navigation'
@@ -117,6 +118,7 @@ type IDispatchProps = {
   goToPageGroup: typeof goToPageGroup
   goToCertificateCorrection: typeof goToCertificateCorrection
   goToHomeTab: typeof goToHomeTab
+  goToHomeFromCorrectionTab: typeof goToHomeFromCorrectionTab
   writeDeclaration: typeof writeDeclaration
 }
 
@@ -935,7 +937,7 @@ class CorrectionSummaryComponent extends React.Component<IFullProps, IState> {
       userPrimaryOffice: this.props.userPrimaryOffice
     })
     this.props.writeDeclaration(declaration)
-    this.props.goToHomeTab(WORKQUEUE_TABS.readyForReview)
+    this.props.goToHomeFromCorrectionTab(WORKQUEUE_TABS.readyToPrint)
   }
 
   gotoReviewPage = () => {
@@ -962,6 +964,7 @@ export const CorrectionSummary = connect(
     goBack,
     goToPageGroup,
     goToCertificateCorrection,
-    goToHomeTab
+    goToHomeTab,
+    goToHomeFromCorrectionTab
   }
 )(injectIntl(CorrectionSummaryComponent))

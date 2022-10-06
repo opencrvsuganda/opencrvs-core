@@ -183,6 +183,13 @@ export function goToHomeTab(tabId: IWORKQUEUE_TABS, selectorId = '') {
   return push(formatUrl(REGISTRAR_HOME_TAB, { tabId, selectorId }))
 }
 
+export function goToHomeFromCorrectionTab(
+  tabId: IWORKQUEUE_TABS,
+  selectorId = ''
+) {
+  return replace(formatUrl(REGISTRAR_HOME_TAB, { tabId, selectorId }))
+}
+
 type searchedLocation = {
   selectedLocation: ISearchLocation
 }

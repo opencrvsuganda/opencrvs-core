@@ -36,7 +36,7 @@ import { buttonMessages } from '@client/i18n/messages/buttons'
 import { messages as certificateMessages } from '@client/i18n/messages/views/certificate'
 import {
   goToHomeTab,
-  goToHomeFromCorrectionTab,
+  goToHomeTabReplace,
   goBack,
   goToCertificateCorrection
 } from '@client/navigation'
@@ -204,7 +204,7 @@ class ReviewCertificateActionComponent extends React.Component<
     this.props.modifyDeclaration(draft)
     this.props.writeDeclaration(draft)
     this.toggleModal()
-    this.props.goToHomeFromCorrectionTab(WORKQUEUE_TABS.readyToPrint)
+    this.props.goToHomeTabReplace(WORKQUEUE_TABS.readyToPrint)
   }
 
   getTitle = () => {
@@ -375,7 +375,7 @@ const mapDispatchToProps = {
   modifyDeclaration,
   writeDeclaration,
   goToHomeTab,
-  goToHomeFromCorrectionTab,
+  goToHomeTabReplace,
   storeDeclaration,
   goBack,
   goToCertificateCorrection

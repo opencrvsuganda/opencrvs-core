@@ -57,10 +57,14 @@ import {
 import { WQContentWrapper } from '@client/views/OfficeHome/WQContentWrapper'
 import { IDynamicValues } from '@opencrvs/components/lib/interface/GridTable/types'
 import { LinkButton } from '@opencrvs/components/lib/buttons/LinkButton'
+import { useState } from 'react'
+import { useLocation } from 'react-router'
 
 const ToolTipContainer = styled.span`
   text-align: center;
 `
+const [state, setState] = useState(false)
+
 interface IBaseReviewTabProps {
   theme: ITheme
   scope: Scope | null
@@ -97,6 +101,10 @@ class ReadyForReviewComponent extends React.Component<
       sortedCol: COLUMNS.SENT_FOR_REVIEW,
       sortOrder: SORT_ORDER.DESCENDING
     }
+  }
+
+  getPresentState = () => {
+    this.setState({ width: window.innerWidth })
   }
 
   componentDidMount() {

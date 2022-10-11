@@ -63,7 +63,6 @@ import { useLocation } from 'react-router'
 const ToolTipContainer = styled.span`
   text-align: center;
 `
-const [state, setState] = useState(false)
 
 interface IBaseReviewTabProps {
   theme: ITheme
